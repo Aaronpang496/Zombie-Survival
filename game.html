@@ -3,24 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
 * { box-sizing: border-box; }
+
 body {
   margin: 0;
   background: #080e16;
   color: #e2e8f0;
   font-family: system-ui, sans-serif;
 }
-.wrap { max-width: 480px; margin: auto; padding: 8px; }
+
+.wrap {
+  max-width: 480px;
+  margin: auto;
+  padding: 8px;
+}
+
 .hud {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-weight: bold;
   padding: 12px 0;
   font-size: 14px;
+  font-weight: bold;
 }
+
 .arena { position: relative; }
+
 canvas {
   display: block;
   width: 100%;
@@ -32,10 +42,11 @@ canvas {
   user-select: none;
   -webkit-user-select: none;
 }
+
 #panel {
   position: absolute;
   inset: 0;
-  background: rgba(4, 9, 16, .88);
+  background: rgba(4, 9, 16, 0.88);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -44,10 +55,21 @@ canvas {
   text-align: center;
   border-radius: 14px;
 }
+
 #panel.hidden { display: none; }
-h2 { color: #86efac; margin: 8px 0; }
+
+h2 {
+  color: #86efac;
+  margin: 8px 0;
+}
+
 #message { line-height: 1.5; }
-#choices { width: 100%; max-width: 320px; }
+
+#choices {
+  width: 100%;
+  max-width: 320px;
+}
+
 button {
   cursor: pointer;
   border: none;
@@ -57,13 +79,35 @@ button {
   padding: 13px;
   font: bold 15px system-ui;
 }
-#choices button { display: block; width: 100%; margin: 10px 0; }
-.controls { display: flex; gap: 10px; margin-top: 12px; }
+
+#choices button {
+  display: block;
+  width: 100%;
+  margin: 10px 0;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
 .controls button { flex: 1; }
-#pause { background: #a5b4fc; color: #1e1b4b; }
-small { display: block; color: #94a3b8; margin-top: 12px; line-height: 1.5; }
+
+#pause {
+  background: #a5b4fc;
+  color: #1e1b4b;
+}
+
+small {
+  display: block;
+  color: #94a3b8;
+  margin-top: 12px;
+  line-height: 1.5;
+}
 </style>
 </head>
+
 <body>
 <div class="wrap">
   <div class="hud">
@@ -73,8 +117,14 @@ small { display: block; color: #94a3b8; margin-top: 12px; line-height: 1.5; }
   </div>
 
   <div class="arena">
-    <canvas id="game" width="480" height="600"
-            tabindex="0" aria-label="Zombie survival arena"></canvas>
+    <canvas
+      id="game"
+      width="480"
+      height="600"
+      tabindex="0"
+      aria-label="Zombie survival arena"
+    ></canvas>
+
     <div id="panel">
       <h2 id="heading"></h2>
       <p id="message"></p>
@@ -88,9 +138,10 @@ small { display: block; color: #94a3b8; margin-top: 12px; line-height: 1.5; }
   </div>
 
   <small>
-    Drag anywhere in the arena to move. Shooting is automatic.<br>
-    Keyboard: arrow keys or WASD. Clear every zombie to upgrade.<br>
-    Pink zombies are fast. Large zombies have extra health.
+    Drag inside the arena to move. Shooting is automatic.<br>
+    The dashed circle shows your 150-pixel shooting range.<br>
+    Keyboard: arrow keys or WASD.<br>
+    Pink zombies are fast. Large purple zombies have extra health.
   </small>
 </div>
 
@@ -100,13 +151,29 @@ small { display: block; color: #94a3b8; margin-top: 12px; line-height: 1.5; }
 const $ = id => document.getElementById(id);
 const canvas = $("game");
 const ctx = canvas.getContext("2d");
-const W = 480, H = 600;
+
+const W = 480;
+const H = 600;
+const RANGE = 150;
+const BULLET_SPEED = 520;
 
 let mode = "ready";
-let player, enemies = [], bullets = [], particles = [];
-let wave = 1, score = 0, remaining = 0;
-let spawnClock = 0, shotClock = 0, invulnerability = 0;
-let elapsed = 0, pointer = null, lastPointer = null;
+let player = null;
+let enemies = [];
+let bullets = [];
+let particles = [];
+
+let wave = 1;
+let score = 0;
+let remaining = 0;
+let spawnClock = 0;
+let shotClock = 0;
+let invulnerability = 0;
+let elapsed = 0;
+
+let pointer = null;
+let moveTarget = null;
+
 const keys = new Set();
 
 function hud() {
@@ -118,7 +185,7 @@ function hud() {
 function releaseControls() {
   keys.clear();
   pointer = null;
-  lastPointer = null;
+  moveTarget = null;
 }
 
 function showPanel(title, message, options) {
@@ -138,28 +205,39 @@ function showPanel(title, message, options) {
 
 function startWave() {
   releaseControls();
+
   remaining = 6 + wave * 3;
   spawnClock = 0.5;
   shotClock = 0;
   invulnerability = Math.max(invulnerability, 1);
+
   mode = "playing";
   $("pause").textContent = "Pause";
   $("panel").classList.add("hidden");
+
   hud();
 }
 
 function reset() {
   player = {
-    x: W / 2, y: H / 2, r: 13,
-    hp: 3, damage: 1, fireRate: 0.48, speed: 225
+    x: W / 2,
+    y: H / 2,
+    r: 13,
+    hp: 3,
+    damage: 1,
+    fireRate: 0.48,
+    speed: 225
   };
+
   enemies = [];
   bullets = [];
   particles = [];
+
   wave = 1;
   score = 0;
   elapsed = 0;
   invulnerability = 0;
+
   startWave();
 }
 
@@ -179,21 +257,39 @@ function upgrade() {
     "Choose one upgrade before the next wave.",
     [
       [
-        player.fireRate > 0.13 ? "⚡ Fire 18% faster" : "💥 Stronger bullets",
+        player.fireRate > 0.13
+          ? "⚡ Fire 18% faster"
+          : "💥 Stronger bullets",
         () => choose(() => {
           if (player.fireRate > 0.13) {
-            player.fireRate = Math.max(0.12, player.fireRate * 0.82);
+            player.fireRate = Math.max(
+              0.12,
+              player.fireRate * 0.82
+            );
           } else {
             player.damage += 1;
           }
         })
       ],
-      ["🔥 +1 bullet damage", () => choose(() => player.damage += 1)],
       [
-        player.hp < 3 ? "❤️ Recover one life" : "👟 Move 10% faster",
+        "🔥 +1 bullet damage",
         () => choose(() => {
-          if (player.hp < 3) player.hp += 1;
-          else player.speed = Math.min(420, player.speed * 1.1);
+          player.damage += 1;
+        })
+      ],
+      [
+        player.hp < 3
+          ? "❤️ Recover one life"
+          : "👟 Move 10% faster",
+        () => choose(() => {
+          if (player.hp < 3) {
+            player.hp += 1;
+          } else {
+            player.speed = Math.min(
+              420,
+              player.speed * 1.1
+            );
+          }
         })
       ]
     ]
@@ -203,9 +299,11 @@ function upgrade() {
 function gameOver() {
   mode = "over";
   releaseControls();
+
   showPanel(
     "OVERRUN!",
-    "You reached wave " + wave + " and scored " + score + " points.",
+    "You reached wave " + wave +
+      " and scored " + score + " points.",
     [["Try again", reset]]
   );
 }
@@ -215,9 +313,12 @@ function pauseGame() {
     mode = "paused";
     releaseControls();
     $("pause").textContent = "Resume";
-    showPanel("PAUSED", "Take a breath. The zombies can wait.", [
-      ["Resume", pauseGame]
-    ]);
+
+    showPanel(
+      "PAUSED",
+      "Take a breath. The zombies can wait.",
+      [["Resume", pauseGame]]
+    );
   } else if (mode === "paused") {
     mode = "playing";
     $("pause").textContent = "Pause";
@@ -227,11 +328,16 @@ function pauseGame() {
 
 function burst(x, y, color, count = 15) {
   for (let i = 0; i < count; i++) {
-    const a = Math.random() * Math.PI * 2;
+    const angle = Math.random() * Math.PI * 2;
     const speed = 40 + Math.random() * 130;
+
     particles.push({
-      x, y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
-      life: 0.55, color
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 0.55,
+      color
     });
   }
 }
@@ -240,46 +346,81 @@ function spawn() {
   const fast = wave >= 2 && Math.random() < 0.25;
   const tank = !fast && wave >= 3 && Math.random() < 0.22;
   const edge = Math.floor(Math.random() * 4);
-  let x, y;
 
-  if (edge === 0) { x = -30; y = Math.random() * H; }
-  if (edge === 1) { x = W + 30; y = Math.random() * H; }
-  if (edge === 2) { x = Math.random() * W; y = -30; }
-  if (edge === 3) { x = Math.random() * W; y = H + 30; }
+  let x;
+  let y;
 
-  const hp = (tank ? 5 : 1) + Math.floor((wave - 1) / 3);
+  if (edge === 0) {
+    x = -30;
+    y = Math.random() * H;
+  } else if (edge === 1) {
+    x = W + 30;
+    y = Math.random() * H;
+  } else if (edge === 2) {
+    x = Math.random() * W;
+    y = -30;
+  } else {
+    x = Math.random() * W;
+    y = H + 30;
+  }
+
+  const hp = (tank ? 5 : 1) +
+    Math.floor((wave - 1) / 3);
 
   enemies.push({
-    x, y, r: tank ? 23 : fast ? 12 : 16,
-    hp, maxHp: hp,
-    speed: Math.min(165, 38 + wave * 5) * (fast ? 1.5 : tank ? 0.65 : 1),
-    color: tank ? "#b794f6" : fast ? "#fb7185" : "#86efac"
+    x,
+    y,
+    r: tank ? 23 : fast ? 12 : 16,
+    hp,
+    maxHp: hp,
+    speed:
+      Math.min(165, 38 + wave * 5) *
+      (fast ? 1.5 : tank ? 0.65 : 1),
+    color: tank
+      ? "#b794f6"
+      : fast
+        ? "#fb7185"
+        : "#86efac"
   });
 
   remaining -= 1;
 }
 
 function shoot() {
-  if (!enemies.length) return;
-
-  let target = enemies[0];
-  let distance = Infinity;
+  let target = null;
+  let nearestDistance = RANGE;
 
   for (const enemy of enemies) {
-    const d = Math.hypot(enemy.x - player.x, enemy.y - player.y);
-    if (d < distance) {
+    if (enemy.hp <= 0) continue;
+
+    const distance = Math.hypot(
+      enemy.x - player.x,
+      enemy.y - player.y
+    );
+
+    if (distance <= nearestDistance) {
       target = enemy;
-      distance = d;
+      nearestDistance = distance;
     }
   }
 
-  const angle = Math.atan2(target.y - player.y, target.x - player.x);
+  // Only shoot when an enemy's center is within range.
+  if (target === null) return false;
+
+  const angle = Math.atan2(
+    target.y - player.y,
+    target.x - player.x
+  );
+
   bullets.push({
-    x: player.x, y: player.y,
-    vx: Math.cos(angle) * 520,
-    vy: Math.sin(angle) * 520,
-    life: 1.7
+    x: player.x,
+    y: player.y,
+    vx: Math.cos(angle) * BULLET_SPEED,
+    vy: Math.sin(angle) * BULLET_SPEED,
+    distanceLeft: RANGE
   });
+
+  return true;
 }
 
 function clampPlayer() {
@@ -293,38 +434,46 @@ function update(dt) {
   elapsed += dt;
   invulnerability = Math.max(0, invulnerability - dt);
 
-  let dx = Number(keys.has("ArrowRight") || keys.has("d")) -
-           Number(keys.has("ArrowLeft") || keys.has("a"));
-  let dy = Number(keys.has("ArrowDown") || keys.has("s")) -
-           Number(keys.has("ArrowUp") || keys.has("w"));
-  const length = Math.hypot(dx, dy) || 1;
+  const dx =
+    Number(keys.has("ArrowRight") || keys.has("d")) -
+    Number(keys.has("ArrowLeft") || keys.has("a"));
 
-  player.x += dx / length * player.speed * dt;
-  player.y += dy / length * player.speed * dt;
-  clampPlayer();
+  const dy =
+    Number(keys.has("ArrowDown") || keys.has("s")) -
+    Number(keys.has("ArrowUp") || keys.has("w"));
 
-  // Touch movement has the same speed limit as keyboard movement.
-  if (lastPointer) {
-    const tx = lastPointer.x - player.x;
-    const ty = lastPointer.y - player.y;
+  const keyboardMoving = dx !== 0 || dy !== 0;
+
+  if (keyboardMoving) {
+    const length = Math.hypot(dx, dy);
+
+    player.x += dx / length * player.speed * dt;
+    player.y += dy / length * player.speed * dt;
+  } else if (moveTarget) {
+    const tx = moveTarget.x - player.x;
+    const ty = moveTarget.y - player.y;
     const distance = Math.hypot(tx, ty);
+
     if (distance > 1) {
       const step = Math.min(distance, player.speed * dt);
+
       player.x += tx / distance * step;
       player.y += ty / distance * step;
-      clampPlayer();
     }
   }
 
+  clampPlayer();
+
   spawnClock -= dt;
+
   if (remaining > 0 && spawnClock <= 0) {
     spawn();
     spawnClock = Math.max(0.22, 0.9 - wave * 0.045);
   }
 
-  shotClock -= dt;
-  if (shotClock <= 0 && enemies.length) {
-    shoot();
+  shotClock = Math.max(0, shotClock - dt);
+
+  if (shotClock === 0 && shoot()) {
     shotClock = player.fireRate;
   }
 
@@ -332,76 +481,107 @@ function update(dt) {
     const dx = player.x - enemy.x;
     const dy = player.y - enemy.y;
     const distance = Math.hypot(dx, dy) || 1;
+
     enemy.x += dx / distance * enemy.speed * dt;
     enemy.y += dy / distance * enemy.speed * dt;
   }
 
   for (const bullet of bullets) {
-    bullet.x += bullet.vx * dt;
-    bullet.y += bullet.vy * dt;
-    bullet.life -= dt;
+    if (bullet.distanceLeft <= 0) continue;
 
-    if (bullet.life <= 0) continue;
+    // Never allow a bullet to travel farther than RANGE.
+    const step = Math.min(
+      BULLET_SPEED * dt,
+      bullet.distanceLeft
+    );
+
+    bullet.x += bullet.vx / BULLET_SPEED * step;
+    bullet.y += bullet.vy / BULLET_SPEED * step;
+    bullet.distanceLeft -= step;
 
     for (const enemy of enemies) {
       if (enemy.hp <= 0) continue;
-      if (Math.hypot(bullet.x - enemy.x, bullet.y - enemy.y) < enemy.r + 4) {
-        enemy.hp -= player.damage;
-        bullet.life = 0;
-        burst(bullet.x, bullet.y, "#facc15", 4);
 
-        if (enemy.hp <= 0) {
-          score += 10;
-          burst(enemy.x, enemy.y, enemy.color);
-        }
-        break;
+      const hit = Math.hypot(
+        bullet.x - enemy.x,
+        bullet.y - enemy.y
+      ) < enemy.r + 4;
+
+      if (!hit) continue;
+
+      enemy.hp -= player.damage;
+      bullet.distanceLeft = 0;
+
+      burst(bullet.x, bullet.y, "#facc15", 4);
+
+      if (enemy.hp <= 0) {
+        score += 10;
+        burst(enemy.x, enemy.y, enemy.color);
       }
-    }
-  }
 
-  enemies = enemies.filter(enemy => enemy.hp > 0);
-  bullets = bullets.filter(bullet =>
-    bullet.life > 0 &&
-    bullet.x > -20 && bullet.x < W + 20 &&
-    bullet.y > -20 && bullet.y < H + 20
-  );
-
-  for (const enemy of enemies) {
-    if (invulnerability <= 0 &&
-        Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.r + player.r) {
-      player.hp -= 1;
-      invulnerability = 1.5;
-      burst(player.x, player.y, "#fb7185", 24);
-
-      // Push the attacker away to give the player room to escape.
-      const dx = enemy.x - player.x;
-      const dy = enemy.y - player.y;
-      const length = Math.hypot(dx, dy) || 1;
-      enemy.x += dx / length * 70;
-      enemy.y += dy / length * 70;
-
-      if (player.hp <= 0) gameOver();
       break;
     }
   }
 
-  for (const p of particles) {
-    p.life -= dt;
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
+  enemies = enemies.filter(enemy => enemy.hp > 0);
+
+  bullets = bullets.filter(bullet =>
+    bullet.distanceLeft > 0 &&
+    bullet.x > -20 &&
+    bullet.x < W + 20 &&
+    bullet.y > -20 &&
+    bullet.y < H + 20
+  );
+
+  for (const enemy of enemies) {
+    const touching = Math.hypot(
+      enemy.x - player.x,
+      enemy.y - player.y
+    ) < enemy.r + player.r;
+
+    if (invulnerability > 0 || !touching) continue;
+
+    player.hp -= 1;
+    invulnerability = 1.5;
+
+    burst(player.x, player.y, "#fb7185", 24);
+
+    const dx = enemy.x - player.x;
+    const dy = enemy.y - player.y;
+    const length = Math.hypot(dx, dy);
+
+    // Push the attacker away to give the player space.
+    enemy.x += (length > 0 ? dx / length : 1) * 70;
+    enemy.y += (length > 0 ? dy / length : 0) * 70;
+
+    if (player.hp <= 0) gameOver();
+
+    break;
   }
-  particles = particles.filter(p => p.life > 0);
+
+  for (const particle of particles) {
+    particle.life -= dt;
+    particle.x += particle.vx * dt;
+    particle.y += particle.vy * dt;
+  }
+
+  particles = particles.filter(particle => particle.life > 0);
 
   hud();
-  if (mode === "playing" && remaining === 0 && enemies.length === 0) {
+
+  if (
+    mode === "playing" &&
+    remaining === 0 &&
+    enemies.length === 0
+  ) {
     upgrade();
   }
 }
 
-function circle(x, y, r, color) {
+function circle(x, y, radius, color) {
   ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -410,11 +590,36 @@ function draw() {
 
   ctx.strokeStyle = "#1b2c38";
   ctx.lineWidth = 1;
+
   for (let x = 0; x <= W; x += 40) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, H);
+    ctx.stroke();
   }
+
   for (let y = 0; y <= H; y += 40) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  // Visible weapon range.
+  if (player && mode !== "over") {
+    ctx.save();
+
+    ctx.fillStyle = "rgba(56, 189, 248, 0.035)";
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.3)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([6, 8]);
+
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, RANGE, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
   }
 
   for (const enemy of enemies) {
@@ -423,38 +628,57 @@ function draw() {
     circle(enemy.x + 5, enemy.y - 3, 2.5, "#101b24");
 
     ctx.fillStyle = "#334155";
-    ctx.fillRect(enemy.x - 15, enemy.y - enemy.r - 9, 30, 4);
+    ctx.fillRect(
+      enemy.x - 15,
+      enemy.y - enemy.r - 9,
+      30,
+      4
+    );
+
     ctx.fillStyle = "#fb7185";
     ctx.fillRect(
-      enemy.x - 15, enemy.y - enemy.r - 9,
-      30 * Math.max(0, enemy.hp / enemy.maxHp), 4
+      enemy.x - 15,
+      enemy.y - enemy.r - 9,
+      30 * Math.max(0, enemy.hp / enemy.maxHp),
+      4
     );
   }
 
   ctx.shadowBlur = 12;
   ctx.shadowColor = "#facc15";
+
   for (const bullet of bullets) {
     circle(bullet.x, bullet.y, 4, "#fef08a");
   }
+
   ctx.shadowBlur = 0;
 
-  for (const p of particles) {
-    ctx.globalAlpha = Math.max(0, p.life / 0.55);
-    ctx.fillStyle = p.color;
-    ctx.fillRect(p.x, p.y, 4, 4);
+  for (const particle of particles) {
+    ctx.globalAlpha = Math.max(0, particle.life / 0.55);
+    ctx.fillStyle = particle.color;
+
+    ctx.fillRect(particle.x, particle.y, 4, 4);
   }
+
   ctx.globalAlpha = 1;
 
   if (player && mode !== "over") {
     ctx.save();
+
     ctx.globalAlpha = invulnerability > 0
-      ? 0.4 + Math.abs(Math.sin(elapsed * 18)) * 0.6 : 1;
+      ? 0.4 + Math.abs(Math.sin(elapsed * 18)) * 0.6
+      : 1;
+
     ctx.shadowBlur = 18;
     ctx.shadowColor = "#38bdf8";
+
     circle(player.x, player.y, player.r, "#38bdf8");
+
     ctx.shadowBlur = 0;
+
     circle(player.x - 4, player.y - 3, 2, "#082f49");
     circle(player.x + 4, player.y - 3, 2, "#082f49");
+
     ctx.restore();
   }
 
@@ -462,15 +686,18 @@ function draw() {
     ctx.fillStyle = "#94a3b8";
     ctx.font = "13px system-ui";
     ctx.textAlign = "center";
+
     ctx.fillText(
       "Zombies left: " + (remaining + enemies.length),
-      W / 2, 24
+      W / 2,
+      24
     );
   }
 }
 
 function point(event) {
   const rect = canvas.getBoundingClientRect();
+
   return {
     x: (event.clientX - rect.left) * W / rect.width,
     y: (event.clientY - rect.top) * H / rect.height
@@ -479,23 +706,27 @@ function point(event) {
 
 canvas.addEventListener("pointerdown", event => {
   if (mode !== "playing" || pointer !== null) return;
+
   pointer = event.pointerId;
-  lastPointer = point(event);
+  moveTarget = point(event);
+
   canvas.setPointerCapture(pointer);
   canvas.focus();
+
   event.preventDefault();
 });
 
 canvas.addEventListener("pointermove", event => {
   if (pointer !== event.pointerId) return;
-  lastPointer = point(event);
+
+  moveTarget = point(event);
   event.preventDefault();
 });
 
 function release(event) {
   if (event.pointerId === pointer) {
     pointer = null;
-    lastPointer = null;
+    moveTarget = null;
   }
 }
 
@@ -504,54 +735,89 @@ canvas.addEventListener("pointercancel", release);
 canvas.addEventListener("lostpointercapture", release);
 
 window.addEventListener("keydown", event => {
-  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
-  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d"].includes(key)) {
+  const key = event.key.length === 1
+    ? event.key.toLowerCase()
+    : event.key;
+
+  const movementKeys = [
+    "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+    "w", "a", "s", "d"
+  ];
+
+  if (movementKeys.includes(key)) {
     event.preventDefault();
-    keys.add(key);
+
+    if (mode === "playing") keys.add(key);
   }
 });
 
 window.addEventListener("keyup", event => {
-  keys.delete(event.key.length === 1 ? event.key.toLowerCase() : event.key);
+  const key = event.key.length === 1
+    ? event.key.toLowerCase()
+    : event.key;
+
+  keys.delete(key);
 });
 
 window.addEventListener("blur", () => {
+  releaseControls();
+
   if (mode === "playing") pauseGame();
 });
 
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden && mode === "playing") pauseGame();
+  if (document.hidden && mode === "playing") {
+    pauseGame();
+  }
 });
 
 $("restart").onclick = () => {
-  if (mode === "ready" || mode === "over") reset();
-  else {
-    if (mode === "playing") pauseGame();
-    showPanel("NEW GAME?", "Restart from wave 1?", [
-      ["Restart", reset],
-      ["Keep current game", () => {
-        if (mode === "upgrade") upgrade();
-        else pauseGame();
-      }]
-    ]);
+  if (mode === "ready" || mode === "over") {
+    reset();
+    return;
   }
+
+  const wasUpgrade = mode === "upgrade";
+
+  if (mode === "playing") pauseGame();
+
+  showPanel(
+    "NEW GAME?",
+    "Restart from wave 1?",
+    [
+      ["Restart", reset],
+      [
+        "Keep current game",
+        () => {
+          if (wasUpgrade) upgrade();
+          else if (mode === "paused") pauseGame();
+        }
+      ]
+    ]
+  );
 };
+
 $("pause").onclick = pauseGame;
 
 showPanel(
   "ZOMBIE SURVIVAL",
-  "Keep moving. Your weapon aims automatically. Survive each wave to upgrade!",
+  "Keep moving! Your weapon only shoots nearby zombies. " +
+    "Survive each wave to choose an upgrade.",
   [["Start survival", reset]]
 );
 
 let previous = performance.now();
+
 function frame(time) {
   const dt = Math.min((time - previous) / 1000, 0.033);
   previous = time;
+
   update(dt);
   draw();
+
   requestAnimationFrame(frame);
 }
+
 requestAnimationFrame(frame);
 </script>
 </body>
