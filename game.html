@@ -3,116 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <style>
 * { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  background: #080e16;
-  color: #e2e8f0;
-  font-family: system-ui, sans-serif;
-}
-
-.wrap {
-  max-width: 480px;
-  margin: auto;
-  padding: 8px;
-}
-
-.hud {
-  display: flex;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 12px 0;
-  font-size: 14px;
-  font-weight: 800;
-}
-
+body { margin: 0; background: #080e16; color: #e2e8f0; font-family: system-ui, sans-serif; }
+.wrap { max-width: 480px; margin: auto; padding: 8px; }
+.hud { display: flex; justify-content: space-between; gap: 6px; padding: 12px 0; font-size: 14px; font-weight: 800; }
 .arena { position: relative; }
-
-canvas {
-  display: block;
-  width: 100%;
-  height: auto;
-  background: #101b24;
-  border: 2px solid #334155;
-  border-radius: 14px;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-#panel {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 22px;
-  text-align: center;
-  background: rgba(4, 9, 16, .92);
-  border-radius: 14px;
-}
-
+canvas { display: block; width: 100%; height: auto; background: #101b24; border: 2px solid #334155; border-radius: 14px; touch-action: none; user-select: none; -webkit-user-select: none; }
+#panel { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 22px; text-align: center; background: rgba(4, 9, 16, .92); border-radius: 14px; }
 #panel.hidden { display: none; }
-
 h2 { color: #86efac; margin: 8px; }
-
 p { line-height: 1.5; font-size: 14px; }
-
 #choices { width: 100%; max-width: 320px; }
-
-button {
-  border: 0;
-  border-radius: 12px;
-  padding: 15px 10px;
-  background: #86efac;
-  color: #052e16;
-  font: bold 15px system-ui;
-  cursor: pointer;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-}
-
-#choices button {
-  display: block;
-  width: 100%;
-  margin: 10px 0;
-}
-
-.controls {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-#dash {
-  flex: 2;
-  background: #67e8f9;
-  color: #083344;
-}
-
+button { border: 0; border-radius: 12px; padding: 15px 10px; background: #86efac; color: #052e16; font: bold 15px system-ui; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+#choices button { display: block; width: 100%; margin: 10px 0; }
+.controls { display: flex; gap: 10px; margin-top: 10px; }
+#dash { flex: 2; background: #67e8f9; color: #083344; }
 #dash:disabled { opacity: .5; }
-
-#pause {
-  flex: 1;
-  background: #c4b5fd;
-  color: #2e1065;
-}
-
-small {
-  display: block;
-  color: #94a3b8;
-  line-height: 1.6;
-  margin-top: 12px;
-}
+#pause { flex: 1; background: #c4b5fd; color: #2e1065; }
+small { display: block; color: #94a3b8; line-height: 1.6; margin-top: 12px; }
 </style>
 </head>
-
 <body>
 <div class="wrap">
   <div class="hud">
@@ -120,40 +31,31 @@ small {
     <span id="wave">Wave: 1</span>
     <span id="score">Score: 0</span>
   </div>
-
   <div class="arena">
-    <canvas id="game" width="480" height="600"
-      tabindex="0" aria-label="Zombie survival arena"></canvas>
-
+    <canvas id="game" width="480" height="600" tabindex="0" aria-label="Zombie survival arena"></canvas>
     <div id="panel">
       <h2 id="heading"></h2>
       <p id="message"></p>
       <div id="choices"></div>
     </div>
   </div>
-
   <div class="controls">
     <button id="dash">💨 DASH</button>
     <button id="pause">Pause</button>
   </div>
-
   <small>
     Drag inside the arena to move. Your weapon aims automatically.<br>
-    Dash toward your movement target; when stopped, dash in your
-    last movement direction.<br>
-    🟢 Walker · 🟣 Spitter · 🔴 Charger<br>
-    Red dashed lines warn of a charge. Purple orbs hurt you.<br>
-    Keyboard: WASD/arrows to move, Space to dash, P to pause.
+    Dash toward your movement target; when stopped, dash in your last movement direction.<br>
+    🟢 Walker · 🟣 Spitter · 🔴 Charger · 🔵 Bomber · 🟡 Creeper · 🟠 Leaper · 💚 Glutton<br>
+    Red dashed lines warn of a charge. Purple orbs hurt you. Blue zombies explode.<br>
+    Gluttons eat other zombies and split into two. Keyboard: WASD/arrows, Space dash, P pause.
   </small>
 </div>
-
 <script>
 "use strict";
-
 const $ = id => document.getElementById(id);
 const canvas = $("game");
 const ctx = canvas.getContext("2d");
-
 const W = 480;
 const H = 600;
 const RANGE = 150;
@@ -162,7 +64,6 @@ const MAX_HP = 4;
 
 let mode = "ready";
 let player = null;
-
 let enemies = [];
 let bullets = [];
 let hostile = [];
@@ -182,44 +83,30 @@ let pointer = null;
 let moveTarget = null;
 const keys = new Set();
 
-function random(min, max) {
-  return min + Math.random() * (max - min);
-}
-
-function clearInput() {
-  keys.clear();
-  pointer = null;
-  moveTarget = null;
-}
+function random(min, max) { return min + Math.random() * (max - min); }
+function clearInput() { keys.clear(); pointer = null; moveTarget = null; }
 
 function showPanel(title, message, options) {
   $("heading").textContent = title;
   $("message").textContent = message;
   $("choices").replaceChildren();
-
   for (const [label, action] of options) {
     const button = document.createElement("button");
     button.textContent = label;
     button.onclick = action;
     $("choices").appendChild(button);
   }
-
   $("panel").classList.remove("hidden");
 }
 
 function hud() {
   if (!player) return;
-
   $("health").textContent = "Lives: " + player.hp;
   $("wave").textContent = "Wave: " + wave;
   $("score").textContent = "Score: " + score;
-
-  $("dash").disabled =
-    mode !== "playing" || player.dashCooldown > 0;
-
+  $("dash").disabled = mode !== "playing" || player.dashCooldown > 0;
   $("dash").textContent = player.dashCooldown > 0
-    ? "💨 " + player.dashCooldown.toFixed(1) + "s"
-    : "💨 DASH";
+    ? "💨 " + player.dashCooldown.toFixed(1) + "s" : "💨 DASH";
 }
 
 function startWave() {
@@ -227,20 +114,16 @@ function startWave() {
   bullets = [];
   hostile = [];
   trails = [];
-
   clearInput();
-
   remaining = 7 + wave * 2;
   spawned = 0;
   spawnClock = .7;
   shotClock = 0;
-
   player.x = W / 2;
   player.y = H / 2;
   player.dashTime = 0;
   player.dashCooldown = 0;
   invulnerability = 1.5;
-
   mode = "playing";
   $("pause").textContent = "Pause";
   $("panel").classList.add("hidden");
@@ -249,26 +132,17 @@ function startWave() {
 
 function reset() {
   player = {
-    x: W / 2,
-    y: H / 2,
-    r: 12,
-    hp: MAX_HP,
-    speed: 220,
-    damage: 1,
-    fireRate: .42,
-    dirX: 0,
-    dirY: -1,
-    dashX: 0,
-    dashY: -1,
-    dashTime: 0,
-    dashCooldown: 0
+    x: W / 2, y: H / 2, r: 12,
+    hp: MAX_HP, speed: 220,
+    damage: 1, fireRate: .42,
+    dirX: 0, dirY: -1,
+    dashX: 0, dashY: -1,
+    dashTime: 0, dashCooldown: 0
   };
-
   wave = 1;
   score = 0;
   elapsed = 0;
   particles = [];
-
   startWave();
 }
 
@@ -277,56 +151,28 @@ function upgrade() {
   clearInput();
   bullets = [];
   hostile = [];
-
   function choose(apply) {
     apply();
     wave += 1;
     startWave();
   }
-
-  showPanel(
-    "WAVE CLEARED!",
-    "Choose an upgrade. The next wave starts with your dash ready.",
-    [
-      [
-        player.fireRate > .14
-          ? "⚡ Fire 15% faster"
-          : "🔥 +1 bullet damage",
-        () => choose(() => {
-          if (player.fireRate > .14) {
-            player.fireRate = Math.max(.13, player.fireRate * .85);
-          } else {
-            player.damage += 1;
-          }
-        })
-      ],
-      [
-        "🔥 +1 bullet damage",
-        () => choose(() => player.damage += 1)
-      ],
-      [
-        player.hp < MAX_HP
-          ? "❤️ Recover one life"
-          : "👟 Move 8% faster",
-        () => choose(() => {
-          if (player.hp < MAX_HP) player.hp += 1;
-          else player.speed = Math.min(350, player.speed * 1.08);
-        })
-      ]
-    ]
-  );
+  showPanel("WAVE CLEARED!", "Choose an upgrade. The next wave starts with your dash ready.", [
+    [player.fireRate > .14 ? "⚡ Fire 15% faster" : "🔥 +1 bullet damage", () => choose(() => {
+      if (player.fireRate > .14) player.fireRate = Math.max(.13, player.fireRate * .85);
+      else player.damage += 1;
+    })],
+    ["🔥 +1 bullet damage", () => choose(() => player.damage += 1)],
+    [player.hp < MAX_HP ? "❤️ Recover one life" : "👟 Move 8% faster", () => choose(() => {
+      if (player.hp < MAX_HP) player.hp += 1;
+      else player.speed = Math.min(350, player.speed * 1.08);
+    })]
+  ]);
 }
 
 function gameOver() {
   mode = "over";
   clearInput();
-
-  showPanel(
-    "OVERRUN!",
-    "Wave " + wave + " · Score " + score +
-      ". Keep moving and save your dash for danger!",
-    [["Try again", reset]]
-  );
+  showPanel("OVERRUN!", "Wave " + wave + " · Score " + score + ". Keep moving and save your dash for danger!", [["Try again", reset]]);
 }
 
 function pauseGame() {
@@ -334,18 +180,12 @@ function pauseGame() {
     mode = "paused";
     clearInput();
     $("pause").textContent = "Resume";
-
-    showPanel(
-      "PAUSED",
-      "The zombies are waiting.",
-      [["Resume", pauseGame]]
-    );
+    showPanel("PAUSED", "The zombies are waiting.", [["Resume", pauseGame]]);
   } else if (mode === "paused") {
     mode = "playing";
     $("pause").textContent = "Pause";
     $("panel").classList.add("hidden");
   }
-
   hud();
 }
 
@@ -353,152 +193,152 @@ function burst(x, y, color, count = 15) {
   for (let i = 0; i < count; i++) {
     const angle = random(0, Math.PI * 2);
     const speed = random(40, 170);
-
-    particles.push({
-      x, y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      life: .55,
-      color
-    });
+    particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: .55, color });
   }
 }
 
 function movement() {
-  let dx =
-    Number(keys.has("ArrowRight") || keys.has("d")) -
-    Number(keys.has("ArrowLeft") || keys.has("a"));
-
-  let dy =
-    Number(keys.has("ArrowDown") || keys.has("s")) -
-    Number(keys.has("ArrowUp") || keys.has("w"));
-
+  let dx = Number(keys.has("ArrowRight") || keys.has("d")) - Number(keys.has("ArrowLeft") || keys.has("a"));
+  let dy = Number(keys.has("ArrowDown") || keys.has("s")) - Number(keys.has("ArrowUp") || keys.has("w"));
   if (dx === 0 && dy === 0 && moveTarget) {
     dx = moveTarget.x - player.x;
     dy = moveTarget.y - player.y;
-
-    if (Math.hypot(dx, dy) < 3) {
-      dx = 0;
-      dy = 0;
-    }
+    if (Math.hypot(dx, dy) < 3) { dx = 0; dy = 0; }
   }
-
   const distance = Math.hypot(dx, dy);
-
-  return {
-    x: distance ? dx / distance : 0,
-    y: distance ? dy / distance : 0
-  };
+  return { x: distance ? dx / distance : 0, y: distance ? dy / distance : 0 };
 }
 
 function dash() {
-  if (
-    mode !== "playing" ||
-    player.dashCooldown > 0
-  ) return;
-
+  if (mode !== "playing" || player.dashCooldown > 0) return;
   const direction = movement();
-
   if (direction.x !== 0 || direction.y !== 0) {
     player.dirX = direction.x;
     player.dirY = direction.y;
   }
-
   player.dashX = player.dirX;
   player.dashY = player.dirY;
   player.dashTime = .18;
   player.dashCooldown = 3;
-
   invulnerability = Math.max(invulnerability, .25);
   burst(player.x, player.y, "#67e8f9", 12);
 }
 
+// ---- Spawn logic with new types ----
 function spawn() {
   let type = "walker";
 
-  // Every wave includes ranged enemies.
+  // Guaranteed special types per wave
   if (spawned === 1) {
     type = "spitter";
   } else if (wave >= 2 && spawned === 3) {
     type = "charger";
+  } else if (wave >= 3 && spawned === 5) {
+    type = "bomber";
+  } else if (wave >= 4 && spawned === 7) {
+    type = "creeper";
+  } else if (wave >= 5 && spawned === 9) {
+    type = "leaper";
+  } else if (wave >= 6 && spawned === 11) {
+    type = "glutton";
   } else {
+    // Random pool based on wave
     const roll = Math.random();
-
-    if (roll < .22) type = "spitter";
-    else if (wave >= 2 && roll < .44) type = "charger";
+    if (wave >= 6) {
+      if (roll < .12) type = "spitter";
+      else if (roll < .24) type = "charger";
+      else if (roll < .34) type = "bomber";
+      else if (roll < .44) type = "creeper";
+      else if (roll < .54) type = "leaper";
+      else if (roll < .64) type = "glutton";
+    } else if (wave >= 5) {
+      if (roll < .15) type = "spitter";
+      else if (roll < .28) type = "charger";
+      else if (roll < .40) type = "bomber";
+      else if (roll < .52) type = "creeper";
+      else if (roll < .64) type = "leaper";
+    } else if (wave >= 4) {
+      if (roll < .18) type = "spitter";
+      else if (roll < .34) type = "charger";
+      else if (roll < .46) type = "bomber";
+      else if (roll < .58) type = "creeper";
+    } else if (wave >= 3) {
+      if (roll < .20) type = "spitter";
+      else if (roll < .36) type = "charger";
+      else if (roll < .50) type = "bomber";
+    } else if (wave >= 2) {
+      if (roll < .22) type = "spitter";
+      else if (roll < .44) type = "charger";
+    } else {
+      if (roll < .22) type = "spitter";
+    }
   }
 
   const edge = Math.floor(random(0, 4));
   let x, y;
+  if (edge === 0) { x = -25; y = random(20, H - 20); }
+  else if (edge === 1) { x = W + 25; y = random(20, H - 20); }
+  else if (edge === 2) { x = random(20, W - 20); y = -25; }
+  else { x = random(20, W - 20); y = H + 25; }
 
-  if (edge === 0) {
-    x = -25; y = random(20, H - 20);
-  } else if (edge === 1) {
-    x = W + 25; y = random(20, H - 20);
-  } else if (edge === 2) {
-    x = random(20, W - 20); y = -25;
-  } else {
-    x = random(20, W - 20); y = H + 25;
-  }
-
-  const hp = (type === "charger" ? 2 : 1) +
-    Math.floor((wave - 1) / 3);
-
-  enemies.push({
-    x, y,
-    type,
-    r: type === "charger" ? 18 : 15,
-    hp,
-    maxHp: hp,
-    speed: Math.min(125, 43 + wave * 6),
-    timer: type === "spitter" ? 1.2 : random(1, 2),
-    phase: "chase",
-    aimX: 0,
-    aimY: 1,
-    color: type === "spitter"
-      ? "#c084fc"
-      : type === "charger"
-        ? "#fb7185"
-        : "#86efac"
-  });
-
+  spawnEnemy(type, x, y, 1);
   spawned += 1;
   remaining -= 1;
+}
+
+// Helper so Glutton splits can create new copies without touching wave counters
+function spawnEnemy(type, x, y, scale) {
+  const hpBonus = Math.floor((wave - 1) / 3);
+  let hp, speed, r, color, timer;
+
+  switch (type) {
+    case "charger":
+      hp = 2 + hpBonus; speed = Math.min(125, 43 + wave * 6); r = 18; color = "#fb7185"; timer = random(1, 2); break;
+    case "spitter":
+      hp = 1 + hpBonus; speed = Math.min(110, 38 + wave * 5); r = 15; color = "#c084fc"; timer = 1.2; break;
+    case "bomber":
+      hp = 2 + hpBonus; speed = Math.min(100, 35 + wave * 5); r = 16; color = "#3b82f6"; timer = random(.8, 1.6); break;
+    case "creeper":
+      hp = 1 + hpBonus; speed = Math.min(90, 30 + wave * 4); r = 14; color = "#eab308"; timer = 0; break;
+    case "leaper":
+      hp = 1 + hpBonus; speed = Math.min(115, 40 + wave * 5); r = 14; color = "#f97316"; timer = random(.6, 1.4); break;
+    case "glutton":
+      hp = 2 + hpBonus; speed = Math.min(85, 30 + wave * 4); r = 17; color = "#4ade80"; timer = random(1.5, 3); break;
+    default: // walker
+      hp = 1 + hpBonus; speed = Math.min(125, 43 + wave * 6); r = 15; color = "#86efac"; timer = random(1, 2);
+  }
+
+  // Scale down stats for split children
+  hp = Math.max(1, Math.round(hp * scale));
+  r = Math.max(10, Math.round(r * scale));
+  speed = speed * (scale < 1 ? 1.15 : 1);
+
+  enemies.push({
+    x, y, type, r, hp, maxHp: hp, speed, timer, phase: "chase",
+    aimX: 0, aimY: 1, color,
+    jumpCooldown: 0, jumpDirX: 0, jumpDirY: 0,
+    explodeTimer: 0, exploded: false,
+    stealthAlpha: 1,
+    eatCooldown: 0
+  });
 }
 
 function shoot() {
   let target = null;
   let nearest = RANGE;
-
   for (const enemy of enemies) {
     if (enemy.hp <= 0) continue;
-
-    const distance = Math.hypot(
-      enemy.x - player.x,
-      enemy.y - player.y
-    );
-
-    if (distance <= nearest) {
-      target = enemy;
-      nearest = distance;
-    }
+    const distance = Math.hypot(enemy.x - player.x, enemy.y - player.y);
+    if (distance <= nearest) { target = enemy; nearest = distance; }
   }
-
   if (!target) return false;
-
-  const angle = Math.atan2(
-    target.y - player.y,
-    target.x - player.x
-  );
-
+  const angle = Math.atan2(target.y - player.y, target.x - player.x);
   bullets.push({
-    x: player.x,
-    y: player.y,
+    x: player.x, y: player.y,
     vx: Math.cos(angle) * BULLET_SPEED,
     vy: Math.sin(angle) * BULLET_SPEED,
     distanceLeft: RANGE
   });
-
   return true;
 }
 
@@ -510,101 +350,198 @@ function updateEnemy(enemy, dt) {
   const ny = dy / distance;
 
   enemy.timer -= dt;
+  if (enemy.jumpCooldown > 0) enemy.jumpCooldown -= dt;
+  if (enemy.eatCooldown > 0) enemy.eatCooldown -= dt;
 
+  // --- Walker ---
   if (enemy.type === "walker") {
     enemy.x += nx * enemy.speed * dt;
     enemy.y += ny * enemy.speed * dt;
     return;
   }
 
+  // --- Spitter ---
   if (enemy.type === "spitter") {
-    // Stay outside the player's weapon range.
-    let direction = 0;
-    if (distance > 220) direction = 1;
-    else if (distance < 175) direction = -1;
-
-    enemy.x += nx * enemy.speed * .8 * direction * dt;
-    enemy.y += ny * enemy.speed * .8 * direction * dt;
-
-    // Ranged enemies enter the arena rather than firing offscreen.
+    let dir = 0;
+    if (distance > 220) dir = 1;
+    else if (distance < 175) dir = -1;
+    enemy.x += nx * enemy.speed * .8 * dir * dt;
+    enemy.y += ny * enemy.speed * .8 * dir * dt;
     enemy.x = Math.max(18, Math.min(W - 18, enemy.x));
     enemy.y = Math.max(18, Math.min(H - 18, enemy.y));
-
     if (enemy.timer <= 0) {
       const speed = Math.min(225, 145 + wave * 5);
-
-      hostile.push({
-        x: enemy.x,
-        y: enemy.y,
-        vx: nx * speed,
-        vy: ny * speed,
-        life: 5,
-        r: 7
-      });
-
+      hostile.push({ x: enemy.x, y: enemy.y, vx: nx * speed, vy: ny * speed, life: 5, r: 7 });
       enemy.timer = Math.max(1.1, 2.3 - wave * .07);
     }
-
     return;
   }
 
-  // Charger locks its direction during the warning.
-  if (enemy.phase === "warn") {
-    if (enemy.timer <= 0) {
-      enemy.phase = "rush";
-      enemy.timer = .65;
+  // --- Charger ---
+  if (enemy.type === "charger") {
+    if (enemy.phase === "warn") {
+      if (enemy.timer <= 0) { enemy.phase = "rush"; enemy.timer = .65; }
+    } else if (enemy.phase === "rush") {
+      enemy.x += enemy.aimX * 390 * dt;
+      enemy.y += enemy.aimY * 390 * dt;
+      enemy.x = Math.max(18, Math.min(W - 18, enemy.x));
+      enemy.y = Math.max(18, Math.min(H - 18, enemy.y));
+      if (enemy.timer <= 0) { enemy.phase = "recover"; enemy.timer = .85; }
+    } else if (enemy.phase === "recover") {
+      if (enemy.timer <= 0) { enemy.phase = "chase"; enemy.timer = 1.5; }
+    } else {
+      enemy.x += nx * enemy.speed * .9 * dt;
+      enemy.y += ny * enemy.speed * .9 * dt;
+      if (enemy.timer <= 0 && distance < 330) {
+        enemy.phase = "warn"; enemy.timer = .8;
+        enemy.aimX = nx; enemy.aimY = ny;
+      }
     }
-  } else if (enemy.phase === "rush") {
-    enemy.x += enemy.aimX * 390 * dt;
-    enemy.y += enemy.aimY * 390 * dt;
+    return;
+  }
 
+  // --- Bomber ---
+  if (enemy.type === "bomber") {
+    enemy.x += nx * enemy.speed * dt;
+    enemy.y += ny * enemy.speed * dt;
+    if (distance < 90 && enemy.explodeTimer === 0) {
+      enemy.explodeTimer = 1.2;
+    }
+    if (enemy.explodeTimer > 0) {
+      enemy.explodeTimer -= dt;
+      enemy.x -= nx * enemy.speed * .5 * dt;
+      enemy.y -= ny * enemy.speed * .5 * dt;
+      if (enemy.explodeTimer <= 0 && !enemy.exploded) {
+        enemy.exploded = true;
+        const blastRadius = 70;
+        if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < blastRadius + player.r) {
+          hurt();
+        }
+        for (const other of enemies) {
+          if (other === enemy || other.hp <= 0) continue;
+          if (Math.hypot(other.x - enemy.x, other.y - enemy.y) < blastRadius) {
+            other.hp -= 1;
+            burst(other.x, other.y, "#f97316", 6);
+          }
+        }
+        burst(enemy.x, enemy.y, "#3b82f6", 35);
+        burst(enemy.x, enemy.y, "#f97316", 20);
+        enemy.hp = 0;
+      }
+    }
+    return;
+  }
+
+  // --- Creeper ---
+  if (enemy.type === "creeper") {
+    enemy.stealthAlpha = 0.35 + Math.abs(Math.sin(elapsed * 4 + enemy.x)) * 0.65;
+    const speedMult = enemy.stealthAlpha < 0.6 ? 1.6 : 0.9;
+    enemy.x += nx * enemy.speed * speedMult * dt;
+    enemy.y += ny * enemy.speed * speedMult * dt;
+    return;
+  }
+
+  // --- Leaper ---
+  if (enemy.type === "leaper") {
+    if (enemy.jumpCooldown <= 0 && distance < 200 && distance > 40) {
+      enemy.jumpDirX = nx;
+      enemy.jumpDirY = ny;
+      enemy.jumpCooldown = 2.2;
+      enemy.timer = 0.35;
+    }
+    if (enemy.jumpCooldown > 0 && enemy.timer > 0) {
+      enemy.timer -= dt;
+      if (enemy.timer <= 0) {
+        enemy.x += enemy.jumpDirX * 320 * dt;
+        enemy.y += enemy.jumpDirY * 320 * dt;
+      }
+    } else {
+      enemy.x += nx * enemy.speed * 0.5 * dt;
+      enemy.y += ny * enemy.speed * 0.5 * dt;
+    }
     enemy.x = Math.max(18, Math.min(W - 18, enemy.x));
     enemy.y = Math.max(18, Math.min(H - 18, enemy.y));
+    return;
+  }
 
-    if (enemy.timer <= 0) {
-      enemy.phase = "recover";
-      enemy.timer = .85;
+  // --- NEW: Glutton ---
+  if (enemy.type === "glutton") {
+    // Hunt the nearest zombie (not the player)
+    let target = null;
+    let nearest = Infinity;
+    for (const other of enemies) {
+      if (other === enemy || other.hp <= 0) continue;
+      // Don't chase other gluttons (avoids endless cannibal loops)
+      if (other.type === "glutton") continue;
+      const d = Math.hypot(other.x - enemy.x, other.y - enemy.y);
+      if (d < nearest) { nearest = d; target = other; }
     }
-  } else if (enemy.phase === "recover") {
-    if (enemy.timer <= 0) {
-      enemy.phase = "chase";
-      enemy.timer = 1.5;
-    }
-  } else {
-    enemy.x += nx * enemy.speed * .9 * dt;
-    enemy.y += ny * enemy.speed * .9 * dt;
 
-    if (enemy.timer <= 0 && distance < 330) {
-      enemy.phase = "warn";
-      enemy.timer = .8;
-      enemy.aimX = nx;
-      enemy.aimY = ny;
+    if (target) {
+      // Chase the prey faster than normal
+      const tx = target.x - enemy.x;
+      const ty = target.y - enemy.y;
+      const td = Math.hypot(tx, ty) || 1;
+      enemy.x += (tx / td) * enemy.speed * 1.4 * dt;
+      enemy.y += (ty / td) * enemy.speed * 1.4 * dt;
+
+      // Eat when close enough
+      if (nearest < enemy.r + target.r + 2 && enemy.eatCooldown <= 0) {
+        target.hp = 0; // consumed
+        enemy.hp = Math.min(enemy.maxHp + 1, enemy.hp + 1); // heals on eat
+        enemy.r = Math.min(24, enemy.r + 1);
+        enemy.eatCooldown = 1.0;
+        burst(target.x, target.y, "#4ade80", 20);
+
+        // Split into two scaled-down copies at the glutton's position
+        const childScale = 0.6;
+        const baseHp = Math.max(1, Math.round(enemy.maxHp * childScale));
+        for (let i = 0; i < 2; i++) {
+          const angle = (Math.PI * 2 / 2) * i + random(0, Math.PI * 2);
+          const cx = enemy.x + Math.cos(angle) * 18;
+          const cy = enemy.y + Math.sin(angle) * 18;
+          enemies.push({
+            x: cx, y: cy,
+            type: "glutton",
+            r: Math.max(10, Math.round(enemy.r * childScale)),
+            hp: baseHp,
+            maxHp: baseHp,
+            speed: enemy.speed * 1.15,
+            timer: random(1, 2),
+            phase: "chase",
+            aimX: 0, aimY: 1,
+            color: "#4ade80",
+            jumpCooldown: 0, jumpDirX: 0, jumpDirY: 0,
+            explodeTimer: 0, exploded: false,
+            stealthAlpha: 1,
+            eatCooldown: 1.5
+          });
+        }
+        // The original glutton dies after splitting
+        enemy.hp = 0;
+        burst(enemy.x, enemy.y, "#22c55e", 30);
+      }
+    } else {
+      // No prey found: slowly approach player
+      enemy.x += nx * enemy.speed * 0.4 * dt;
+      enemy.y += ny * enemy.speed * 0.4 * dt;
     }
+    return;
   }
 }
 
 function hurt() {
-  if (
-    mode !== "playing" ||
-    invulnerability > 0
-  ) return;
-
+  if (mode !== "playing" || invulnerability > 0) return;
   player.hp -= 1;
   invulnerability = 1.1;
   burst(player.x, player.y, "#fb7185", 22);
-
   if (player.hp <= 0) gameOver();
 }
 
 function update(dt) {
   if (mode === "paused") return;
 
-  for (const p of particles) {
-    p.life -= dt;
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-  }
-
+  for (const p of particles) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; }
   particles = particles.filter(p => p.life > 0);
 
   for (const t of trails) t.life -= dt;
@@ -618,36 +555,18 @@ function update(dt) {
 
   if (player.dashTime > 0) {
     const step = Math.min(dt, player.dashTime);
-
     player.x += player.dashX * 780 * step;
     player.y += player.dashY * 780 * step;
     player.dashTime = Math.max(0, player.dashTime - dt);
-
-    trails.push({
-      x: player.x,
-      y: player.y,
-      life: .2
-    });
+    trails.push({ x: player.x, y: player.y, life: .2 });
   } else {
     const direction = movement();
     let step = player.speed * dt;
-
-    if (
-      moveTarget &&
-      !keys.size
-    ) {
-      step = Math.min(
-        step,
-        Math.hypot(
-          moveTarget.x - player.x,
-          moveTarget.y - player.y
-        )
-      );
+    if (moveTarget && !keys.size) {
+      step = Math.min(step, Math.hypot(moveTarget.x - player.x, moveTarget.y - player.y));
     }
-
     player.x += direction.x * step;
     player.y += direction.y * step;
-
     if (direction.x !== 0 || direction.y !== 0) {
       player.dirX = direction.x;
       player.dirY = direction.y;
@@ -658,7 +577,6 @@ function update(dt) {
   player.y = Math.max(15, Math.min(H - 15, player.y));
 
   spawnClock -= dt;
-
   if (remaining > 0 && spawnClock <= 0) {
     spawn();
     spawnClock = Math.max(.3, .95 - wave * .045);
@@ -667,41 +585,32 @@ function update(dt) {
   for (const enemy of enemies) updateEnemy(enemy, dt);
 
   shotClock = Math.max(0, shotClock - dt);
-
-  if (shotClock === 0 && shoot()) {
-    shotClock = player.fireRate;
-  }
+  if (shotClock === 0 && shoot()) shotClock = player.fireRate;
 
   for (const bullet of bullets) {
     if (bullet.distanceLeft <= 0) continue;
-
-    const step = Math.min(
-      BULLET_SPEED * dt,
-      bullet.distanceLeft
-    );
-
+    const step = Math.min(BULLET_SPEED * dt, bullet.distanceLeft);
     bullet.x += bullet.vx / BULLET_SPEED * step;
     bullet.y += bullet.vy / BULLET_SPEED * step;
     bullet.distanceLeft -= step;
 
     for (const enemy of enemies) {
       if (enemy.hp <= 0) continue;
-
-      if (
-        Math.hypot(
-          bullet.x - enemy.x,
-          bullet.y - enemy.y
-        ) < enemy.r + 4
-      ) {
+      if (Math.hypot(bullet.x - enemy.x, bullet.y - enemy.y) < enemy.r + 4) {
         bullet.distanceLeft = 0;
         enemy.hp -= player.damage;
         burst(bullet.x, bullet.y, "#facc15", 4);
-
         if (enemy.hp <= 0) {
-          score += enemy.type === "walker" ? 10 : 25;
+          let points = 10;
+          if (enemy.type === "spitter") points = 25;
+          else if (enemy.type === "charger") points = 25;
+          else if (enemy.type === "bomber") points = 30;
+          else if (enemy.type === "creeper") points = 35;
+          else if (enemy.type === "leaper") points = 30;
+          else if (enemy.type === "glutton") points = 40;
+          score += points;
           burst(enemy.x, enemy.y, enemy.color);
         }
-
         break;
       }
     }
@@ -714,42 +623,21 @@ function update(dt) {
     orb.x += orb.vx * dt;
     orb.y += orb.vy * dt;
     orb.life -= dt;
-
-    if (
-      Math.hypot(
-        orb.x - player.x,
-        orb.y - player.y
-      ) < orb.r + player.r
-    ) {
+    if (Math.hypot(orb.x - player.x, orb.y - player.y) < orb.r + player.r) {
       orb.life = 0;
       hurt();
     }
   }
-
-  hostile = hostile.filter(orb =>
-    orb.life > 0 &&
-    orb.x > -20 && orb.x < W + 20 &&
-    orb.y > -20 && orb.y < H + 20
-  );
+  hostile = hostile.filter(orb => orb.life > 0 && orb.x > -20 && orb.x < W + 20 && orb.y > -20 && orb.y < H + 20);
 
   for (const enemy of enemies) {
     if (mode !== "playing") break;
-
-    if (
-      Math.hypot(
-        enemy.x - player.x,
-        enemy.y - player.y
-      ) < enemy.r + player.r
-    ) {
+    if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.r + player.r) {
       hurt();
     }
   }
 
-  if (
-    mode === "playing" &&
-    remaining === 0 &&
-    enemies.length === 0
-  ) {
+  if (mode === "playing" && remaining === 0 && enemies.length === 0) {
     upgrade();
   }
 }
@@ -765,24 +653,12 @@ function draw() {
   ctx.clearRect(0, 0, W, H);
   ctx.strokeStyle = "#1b2c38";
   ctx.lineWidth = 1;
-
-  for (let x = 0; x <= W; x += 40) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, H);
-    ctx.stroke();
-  }
-
-  for (let y = 0; y <= H; y += 40) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(W, y);
-    ctx.stroke();
-  }
+  for (let x = 0; x <= W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
 
   if (!player) return;
 
-  // Player weapon range.
+  // Weapon range circle
   ctx.save();
   ctx.strokeStyle = "rgba(56,189,248,.17)";
   ctx.setLineDash([5, 8]);
@@ -791,42 +667,73 @@ function draw() {
   ctx.stroke();
   ctx.restore();
 
-  // Telegraph charger attacks before they happen.
+  // Charger telegraph & Bomber fuse & Leaper wind-up & Glutton eating ring
   for (const enemy of enemies) {
-    if (enemy.phase !== "warn") continue;
-
-    ctx.save();
-    ctx.strokeStyle = "#fb7185";
-    ctx.lineWidth = 3;
-    ctx.setLineDash([10, 7]);
-
-    ctx.beginPath();
-    ctx.moveTo(enemy.x, enemy.y);
-    ctx.lineTo(
-      enemy.x + enemy.aimX * 255,
-      enemy.y + enemy.aimY * 255
-    );
-    ctx.stroke();
-
-    ctx.restore();
+    if (enemy.type === "charger" && enemy.phase === "warn") {
+      ctx.save();
+      ctx.strokeStyle = "#fb7185";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 7]);
+      ctx.beginPath();
+      ctx.moveTo(enemy.x, enemy.y);
+      ctx.lineTo(enemy.x + enemy.aimX * 255, enemy.y + enemy.aimY * 255);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (enemy.type === "bomber" && enemy.explodeTimer > 0) {
+      ctx.save();
+      ctx.strokeStyle = "#f97316";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(enemy.x, enemy.y, enemy.r + 6 + Math.sin(elapsed * 20) * 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (enemy.type === "leaper" && enemy.timer > 0 && enemy.jumpCooldown > 1.8) {
+      ctx.save();
+      ctx.strokeStyle = "#f97316";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 6]);
+      ctx.beginPath();
+      ctx.moveTo(enemy.x, enemy.y);
+      ctx.lineTo(enemy.x + enemy.jumpDirX * 60, enemy.y + enemy.jumpDirY * 60);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (enemy.type === "glutton") {
+      ctx.save();
+      ctx.strokeStyle = "rgba(74,222,128,.5)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(enemy.x, enemy.y, enemy.r + 4 + Math.sin(elapsed * 8) * 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
+  // Trails
   for (const t of trails) {
     ctx.globalAlpha = Math.max(0, t.life / .2) * .4;
     circle(t.x, t.y, player.r, "#67e8f9");
   }
   ctx.globalAlpha = 1;
 
+  // Enemies
   for (const enemy of enemies) {
+    let alpha = 1;
+    if (enemy.type === "creeper") alpha = enemy.stealthAlpha;
+    ctx.globalAlpha = alpha;
+
     circle(enemy.x, enemy.y, enemy.r, enemy.color);
 
+    // Eyes
     circle(enemy.x - 5, enemy.y - 3, 2.5, "#101b24");
     circle(enemy.x + 5, enemy.y - 3, 2.5, "#101b24");
 
+    // Type-specific decorations
     if (enemy.type === "spitter") {
       circle(enemy.x, enemy.y + 6, 4, "#581c87");
     }
-
     if (enemy.type === "charger") {
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 2;
@@ -836,30 +743,66 @@ function draw() {
       ctx.lineTo(enemy.x + 6, enemy.y + 5);
       ctx.stroke();
     }
+    if (enemy.type === "bomber") {
+      if (enemy.explodeTimer > 0) {
+        circle(enemy.x, enemy.y - enemy.r - 4, 4 + Math.sin(elapsed * 30) * 3, "#fbbf24");
+      }
+      ctx.fillStyle = "#1e3a5f";
+      ctx.beginPath();
+      ctx.arc(enemy.x, enemy.y, enemy.r * .5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (enemy.type === "creeper") {
+      ctx.strokeStyle = "#78350f";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(enemy.x - 5, enemy.y + 6);
+      ctx.lineTo(enemy.x - 1, enemy.y + 3);
+      ctx.lineTo(enemy.x + 3, enemy.y + 7);
+      ctx.lineTo(enemy.x + 6, enemy.y + 4);
+      ctx.stroke();
+    }
+    if (enemy.type === "leaper") {
+      ctx.strokeStyle = "#fde68a";
+      ctx.lineWidth = 2;
+      for (let i = -1; i <= 1; i += 2) {
+        ctx.beginPath();
+        ctx.moveTo(enemy.x + i * 8, enemy.y + 8);
+        ctx.lineTo(enemy.x + i * 10, enemy.y + 14);
+        ctx.stroke();
+      }
+    }
+    if (enemy.type === "glutton") {
+      // Big mouth + teeth
+      ctx.fillStyle = "#14532d";
+      ctx.beginPath();
+      ctx.arc(enemy.x, enemy.y + 4, enemy.r * .55, 0, Math.PI);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      for (let i = -2; i <= 2; i++) {
+        ctx.fillRect(enemy.x + i * 4 - 1, enemy.y + 3, 2, 4);
+      }
+    }
 
+    // HP bar
     ctx.fillStyle = "#334155";
-    ctx.fillRect(
-      enemy.x - 15, enemy.y - enemy.r - 9, 30, 4
-    );
-
+    ctx.fillRect(enemy.x - 15, enemy.y - enemy.r - 9, 30, 4);
     ctx.fillStyle = enemy.color;
-    ctx.fillRect(
-      enemy.x - 15,
-      enemy.y - enemy.r - 9,
-      30 * Math.max(0, enemy.hp / enemy.maxHp),
-      4
-    );
+    ctx.fillRect(enemy.x - 15, enemy.y - enemy.r - 9, 30 * Math.max(0, enemy.hp / enemy.maxHp), 4);
+
+    ctx.globalAlpha = 1;
   }
 
-  for (const bullet of bullets) {
-    circle(bullet.x, bullet.y, 4, "#fef08a");
-  }
+  // Bullets
+  for (const bullet of bullets) circle(bullet.x, bullet.y, 4, "#fef08a");
 
+  // Hostile orbs
   for (const orb of hostile) {
     circle(orb.x, orb.y, orb.r + 3, "#581c87");
     circle(orb.x, orb.y, orb.r, "#e879f9");
   }
 
+  // Particles
   for (const p of particles) {
     ctx.globalAlpha = Math.max(0, p.life / .55);
     ctx.fillStyle = p.color;
@@ -867,41 +810,22 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
+  // Player
   if (mode !== "over") {
     ctx.save();
-
-    ctx.globalAlpha = invulnerability > 0
-      ? .4 + Math.abs(Math.sin(elapsed * 20)) * .6
-      : 1;
-
+    ctx.globalAlpha = invulnerability > 0 ? .4 + Math.abs(Math.sin(elapsed * 20)) * .6 : 1;
     ctx.shadowColor = "#38bdf8";
     ctx.shadowBlur = 16;
-
-    circle(
-      player.x,
-      player.y,
-      player.r,
-      player.dashTime > 0 ? "#ffffff" : "#38bdf8"
-    );
-
+    circle(player.x, player.y, player.r, player.dashTime > 0 ? "#ffffff" : "#38bdf8");
     ctx.shadowBlur = 0;
     circle(player.x - 4, player.y - 3, 2, "#082f49");
     circle(player.x + 4, player.y - 3, 2, "#082f49");
-
-    // Shows your current dash direction.
     ctx.strokeStyle = "#a5f3fc";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(
-      player.x + player.dirX * 17,
-      player.y + player.dirY * 17
-    );
-    ctx.lineTo(
-      player.x + player.dirX * 26,
-      player.y + player.dirY * 26
-    );
+    ctx.moveTo(player.x + player.dirX * 17, player.y + player.dirY * 17);
+    ctx.lineTo(player.x + player.dirX * 26, player.y + player.dirY * 26);
     ctx.stroke();
-
     ctx.restore();
   }
 
@@ -909,16 +833,12 @@ function draw() {
     ctx.fillStyle = "#cbd5e1";
     ctx.font = "13px system-ui";
     ctx.textAlign = "center";
-    ctx.fillText(
-      "Enemies left: " + (remaining + enemies.length),
-      W / 2, 24
-    );
+    ctx.fillText("Enemies left: " + (remaining + enemies.length), W / 2, 24);
   }
 }
 
 function point(event) {
   const rect = canvas.getBoundingClientRect();
-
   return {
     x: (event.clientX - rect.left) * W / rect.width,
     y: (event.clientY - rect.top) * H / rect.height
@@ -928,9 +848,7 @@ function point(event) {
 canvas.addEventListener("pointerdown", event => {
   if (mode !== "playing" || pointer !== null) return;
   if (event.pointerType === "mouse" && event.button !== 0) return;
-
   event.preventDefault();
-
   pointer = event.pointerId;
   moveTarget = point(event);
   canvas.setPointerCapture(pointer);
@@ -938,7 +856,6 @@ canvas.addEventListener("pointerdown", event => {
 
 canvas.addEventListener("pointermove", event => {
   if (event.pointerId !== pointer) return;
-
   event.preventDefault();
   moveTarget = point(event);
 });
@@ -954,51 +871,27 @@ canvas.addEventListener("pointerup", release);
 canvas.addEventListener("pointercancel", release);
 canvas.addEventListener("lostpointercapture", release);
 
-canvas.addEventListener("contextmenu", event => {
-  event.preventDefault();
-});
+canvas.addEventListener("contextmenu", event => { event.preventDefault(); });
 
-// A second finger can press Dash while the first steers.
-$("dash").addEventListener("pointerdown", event => {
-  event.preventDefault();
-  dash();
-});
-
-$("dash").addEventListener("contextmenu", event => {
-  event.preventDefault();
-});
-
+$("dash").addEventListener("pointerdown", event => { event.preventDefault(); dash(); });
+$("dash").addEventListener("contextmenu", event => { event.preventDefault(); });
 $("pause").onclick = pauseGame;
 
 window.addEventListener("keydown", event => {
-  const key = event.key.length === 1
-    ? event.key.toLowerCase()
-    : event.key;
-
-  if (
-    ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
-     "w", "a", "s", "d"].includes(key)
-  ) {
+  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+  if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "w", "a", "s", "d"].includes(key)) {
     event.preventDefault();
     if (mode === "playing") keys.add(key);
   }
-
   if (event.code === "Space") {
     event.preventDefault();
     if (!event.repeat) dash();
   }
-
-  if (event.code === "KeyP" && !event.repeat) {
-    pauseGame();
-  }
+  if (event.code === "KeyP" && !event.repeat) pauseGame();
 });
 
 window.addEventListener("keyup", event => {
-  keys.delete(
-    event.key.length === 1
-      ? event.key.toLowerCase()
-      : event.key
-  );
+  keys.delete(event.key.length === 1 ? event.key.toLowerCase() : event.key);
 });
 
 window.addEventListener("blur", () => {
@@ -1012,8 +905,8 @@ document.addEventListener("visibilitychange", () => {
 
 showPanel(
   "DASH & DODGE",
-  "Spitters fire from a distance. Chargers lock onto your position, " +
-  "then rush. Keep moving and use your dash to escape!",
+  "New: Gluttons eat other zombies and split into two! Bombers explode, " +
+  "Creepers stealth, and Leapers pounce. Keep moving and use your dash to escape!",
   [["Start survival", reset]]
 );
 
@@ -1022,15 +915,9 @@ let previous = performance.now();
 function frame(now) {
   const elapsed = Math.min((now - previous) / 1000, .05);
   previous = now;
-
-  // Small physics steps improve collision detection.
   const steps = Math.max(1, Math.ceil(elapsed / .008));
   const dt = elapsed / steps;
-
-  for (let i = 0; i < steps; i++) {
-    update(dt);
-  }
-
+  for (let i = 0; i < steps; i++) update(dt);
   hud();
   draw();
   requestAnimationFrame(frame);
