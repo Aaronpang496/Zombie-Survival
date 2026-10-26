@@ -228,7 +228,6 @@ function dash() {
 function spawn() {
   let type = "walker";
 
-  // Guaranteed special types per wave
   if (spawned === 1) {
     type = "spitter";
   } else if (wave >= 2 && spawned === 3) {
@@ -242,7 +241,6 @@ function spawn() {
   } else if (wave >= 6 && spawned === 11) {
     type = "glutton";
   } else {
-    // Random pool based on wave
     const roll = Math.random();
     if (wave >= 6) {
       if (roll < .12) type = "spitter";
@@ -286,29 +284,28 @@ function spawn() {
   remaining -= 1;
 }
 
-// Helper so Glutton splits can create new copies without touching wave counters
+// Tougher enemies: more HP, faster, bigger
 function spawnEnemy(type, x, y, scale) {
-  const hpBonus = Math.floor((wave - 1) / 3);
+  const hpBonus = Math.floor((wave - 1) / 2);
   let hp, speed, r, color, timer;
 
   switch (type) {
     case "charger":
-      hp = 2 + hpBonus; speed = Math.min(125, 43 + wave * 6); r = 18; color = "#fb7185"; timer = random(1, 2); break;
+      hp = 4 + hpBonus; speed = Math.min(150, 60 + wave * 8); r = 20; color = "#fb7185"; timer = random(1, 2); break;
     case "spitter":
-      hp = 1 + hpBonus; speed = Math.min(110, 38 + wave * 5); r = 15; color = "#c084fc"; timer = 1.2; break;
+      hp = 3 + hpBonus; speed = Math.min(130, 50 + wave * 6); r = 17; color = "#c084fc"; timer = 1.2; break;
     case "bomber":
-      hp = 2 + hpBonus; speed = Math.min(100, 35 + wave * 5); r = 16; color = "#3b82f6"; timer = random(.8, 1.6); break;
+      hp = 4 + hpBonus; speed = Math.min(120, 48 + wave * 6); r = 18; color = "#3b82f6"; timer = random(.8, 1.6); break;
     case "creeper":
-      hp = 1 + hpBonus; speed = Math.min(90, 30 + wave * 4); r = 14; color = "#eab308"; timer = 0; break;
+      hp = 2 + hpBonus; speed = Math.min(110, 42 + wave * 5); r = 15; color = "#eab308"; timer = 0; break;
     case "leaper":
-      hp = 1 + hpBonus; speed = Math.min(115, 40 + wave * 5); r = 14; color = "#f97316"; timer = random(.6, 1.4); break;
+      hp = 3 + hpBonus; speed = Math.min(140, 55 + wave * 6); r = 16; color = "#f97316"; timer = random(.6, 1.4); break;
     case "glutton":
-      hp = 2 + hpBonus; speed = Math.min(85, 30 + wave * 4); r = 17; color = "#4ade80"; timer = random(1.5, 3); break;
+      hp = 5 + hpBonus; speed = Math.min(110, 40 + wave * 5); r = 19; color = "#4ade80"; timer = random(1.5, 3); break;
     default: // walker
-      hp = 1 + hpBonus; speed = Math.min(125, 43 + wave * 6); r = 15; color = "#86efac"; timer = random(1, 2);
+      hp = 2 + hpBonus; speed = Math.min(150, 58 + wave * 8); r = 16; color = "#86efac"; timer = random(1, 2);
   }
 
-  // Scale down stats for split children
   hp = Math.max(1, Math.round(hp * scale));
   r = Math.max(10, Math.round(r * scale));
   speed = speed * (scale < 1 ? 1.15 : 1);
@@ -353,160 +350,167 @@ function updateEnemy(enemy, dt) {
   if (enemy.jumpCooldown > 0) enemy.jumpCooldown -= dt;
   if (enemy.eatCooldown > 0) enemy.eatCooldown -= dt;
 
-  // --- Walker ---
+  // --- Walker (now faster & more aggressive) ---
   if (enemy.type === "walker") {
-    enemy.x += nx * enemy.speed * dt;
-    enemy.y += ny * enemy.speed * dt;
+    const boost = distance < 200 ? 1.3 : 1;
+    enemy.x += nx * enemy.speed * boost * dt;
+    enemy.y += ny * enemy.speed * boost * dt;
     return;
   }
 
-  // --- Spitter ---
+  // --- Spitter (hangs closer, shoots faster) ---
   if (enemy.type === "spitter") {
     let dir = 0;
-    if (distance > 220) dir = 1;
-    else if (distance < 175) dir = -1;
-    enemy.x += nx * enemy.speed * .8 * dir * dt;
-    enemy.y += ny * enemy.speed * .8 * dir * dt;
+    if (distance > 190) dir = 1;
+    else if (distance < 150) dir = -1;
+    enemy.x += nx * enemy.speed * 1.1 * dir * dt;
+    enemy.y += ny * enemy.speed * 1.1 * dir * dt;
     enemy.x = Math.max(18, Math.min(W - 18, enemy.x));
     enemy.y = Math.max(18, Math.min(H - 18, enemy.y));
     if (enemy.timer <= 0) {
-      const speed = Math.min(225, 145 + wave * 5);
-      hostile.push({ x: enemy.x, y: enemy.y, vx: nx * speed, vy: ny * speed, life: 5, r: 7 });
-      enemy.timer = Math.max(1.1, 2.3 - wave * .07);
+      const speed = Math.min(280, 180 + wave * 6);
+      // 3-shot burst for more pressure
+      for (let i = -1; i <= 1; i++) {
+        const angle = Math.atan2(dy, dx) + i * 0.18;
+        hostile.push({
+          x: enemy.x, y: enemy.y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 6, r: 8
+        });
+      }
+      enemy.timer = Math.max(.8, 1.8 - wave * .08);
     }
     return;
   }
 
-  // --- Charger ---
+  // --- Charger (faster rushes) ---
   if (enemy.type === "charger") {
     if (enemy.phase === "warn") {
-      if (enemy.timer <= 0) { enemy.phase = "rush"; enemy.timer = .65; }
+      if (enemy.timer <= 0) { enemy.phase = "rush"; enemy.timer = .7; }
     } else if (enemy.phase === "rush") {
-      enemy.x += enemy.aimX * 390 * dt;
-      enemy.y += enemy.aimY * 390 * dt;
+      enemy.x += enemy.aimX * 480 * dt;
+      enemy.y += enemy.aimY * 480 * dt;
       enemy.x = Math.max(18, Math.min(W - 18, enemy.x));
       enemy.y = Math.max(18, Math.min(H - 18, enemy.y));
-      if (enemy.timer <= 0) { enemy.phase = "recover"; enemy.timer = .85; }
+      if (enemy.timer <= 0) { enemy.phase = "recover"; enemy.timer = .6; }
     } else if (enemy.phase === "recover") {
-      if (enemy.timer <= 0) { enemy.phase = "chase"; enemy.timer = 1.5; }
+      if (enemy.timer <= 0) { enemy.phase = "chase"; enemy.timer = 1.2; }
     } else {
-      enemy.x += nx * enemy.speed * .9 * dt;
-      enemy.y += ny * enemy.speed * .9 * dt;
-      if (enemy.timer <= 0 && distance < 330) {
-        enemy.phase = "warn"; enemy.timer = .8;
+      enemy.x += nx * enemy.speed * 1.1 * dt;
+      enemy.y += ny * enemy.speed * 1.1 * dt;
+      if (enemy.timer <= 0 && distance < 380) {
+        enemy.phase = "warn"; enemy.timer = .7;
         enemy.aimX = nx; enemy.aimY = ny;
       }
     }
     return;
   }
 
-  // --- Bomber ---
+  // --- Bomber (bigger blast, faster fuse) ---
   if (enemy.type === "bomber") {
-    enemy.x += nx * enemy.speed * dt;
-    enemy.y += ny * enemy.speed * dt;
-    if (distance < 90 && enemy.explodeTimer === 0) {
-      enemy.explodeTimer = 1.2;
+    enemy.x += nx * enemy.speed * 1.1 * dt;
+    enemy.y += ny * enemy.speed * 1.1 * dt;
+    if (distance < 110 && enemy.explodeTimer === 0) {
+      enemy.explodeTimer = .9;
     }
     if (enemy.explodeTimer > 0) {
       enemy.explodeTimer -= dt;
-      enemy.x -= nx * enemy.speed * .5 * dt;
-      enemy.y -= ny * enemy.speed * .5 * dt;
+      enemy.x -= nx * enemy.speed * .3 * dt;
+      enemy.y -= ny * enemy.speed * .3 * dt;
       if (enemy.explodeTimer <= 0 && !enemy.exploded) {
         enemy.exploded = true;
-        const blastRadius = 70;
+        const blastRadius = 95;
         if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < blastRadius + player.r) {
           hurt();
         }
         for (const other of enemies) {
           if (other === enemy || other.hp <= 0) continue;
           if (Math.hypot(other.x - enemy.x, other.y - enemy.y) < blastRadius) {
-            other.hp -= 1;
+            other.hp -= 2;
             burst(other.x, other.y, "#f97316", 6);
           }
         }
-        burst(enemy.x, enemy.y, "#3b82f6", 35);
-        burst(enemy.x, enemy.y, "#f97316", 20);
+        burst(enemy.x, enemy.y, "#3b82f6", 40);
+        burst(enemy.x, enemy.y, "#f97316", 25);
         enemy.hp = 0;
       }
     }
     return;
   }
 
-  // --- Creeper ---
+  // --- Creeper (faster, tougher, more visible cycling) ---
   if (enemy.type === "creeper") {
-    enemy.stealthAlpha = 0.35 + Math.abs(Math.sin(elapsed * 4 + enemy.x)) * 0.65;
-    const speedMult = enemy.stealthAlpha < 0.6 ? 1.6 : 0.9;
+    enemy.stealthAlpha = 0.35 + Math.abs(Math.sin(elapsed * 5 + enemy.x)) * 0.65;
+    const speedMult = enemy.stealthAlpha < 0.6 ? 2.0 : 1.1;
     enemy.x += nx * enemy.speed * speedMult * dt;
     enemy.y += ny * enemy.speed * speedMult * dt;
     return;
   }
 
-  // --- Leaper ---
+  // --- Leaper (faster windup, harder jumps) ---
   if (enemy.type === "leaper") {
-    if (enemy.jumpCooldown <= 0 && distance < 200 && distance > 40) {
+    if (enemy.jumpCooldown <= 0 && distance < 240 && distance > 30) {
       enemy.jumpDirX = nx;
       enemy.jumpDirY = ny;
-      enemy.jumpCooldown = 2.2;
-      enemy.timer = 0.35;
+      enemy.jumpCooldown = 1.8;
+      enemy.timer = 0.28;
     }
     if (enemy.jumpCooldown > 0 && enemy.timer > 0) {
       enemy.timer -= dt;
       if (enemy.timer <= 0) {
-        enemy.x += enemy.jumpDirX * 320 * dt;
-        enemy.y += enemy.jumpDirY * 320 * dt;
+        enemy.x += enemy.jumpDirX * 420 * dt;
+        enemy.y += enemy.jumpDirY * 420 * dt;
       }
     } else {
-      enemy.x += nx * enemy.speed * 0.5 * dt;
-      enemy.y += ny * enemy.speed * 0.5 * dt;
+      enemy.x += nx * enemy.speed * 0.6 * dt;
+      enemy.y += ny * enemy.speed * 0.6 * dt;
     }
     enemy.x = Math.max(18, Math.min(W - 18, enemy.x));
     enemy.y = Math.max(18, Math.min(H - 18, enemy.y));
     return;
   }
 
-  // --- NEW: Glutton ---
+  // --- Glutton (much more aggressive; hunts, eats, splits) ---
   if (enemy.type === "glutton") {
-    // Hunt the nearest zombie (not the player)
     let target = null;
     let nearest = Infinity;
     for (const other of enemies) {
       if (other === enemy || other.hp <= 0) continue;
-      // Don't chase other gluttons (avoids endless cannibal loops)
       if (other.type === "glutton") continue;
       const d = Math.hypot(other.x - enemy.x, other.y - enemy.y);
       if (d < nearest) { nearest = d; target = other; }
     }
 
     if (target) {
-      // Chase the prey faster than normal
       const tx = target.x - enemy.x;
       const ty = target.y - enemy.y;
       const td = Math.hypot(tx, ty) || 1;
-      enemy.x += (tx / td) * enemy.speed * 1.4 * dt;
-      enemy.y += (ty / td) * enemy.speed * 1.4 * dt;
+      // Very fast pursuit
+      enemy.x += (tx / td) * enemy.speed * 2.0 * dt;
+      enemy.y += (ty / td) * enemy.speed * 2.0 * dt;
 
-      // Eat when close enough
-      if (nearest < enemy.r + target.r + 2 && enemy.eatCooldown <= 0) {
-        target.hp = 0; // consumed
-        enemy.hp = Math.min(enemy.maxHp + 1, enemy.hp + 1); // heals on eat
-        enemy.r = Math.min(24, enemy.r + 1);
-        enemy.eatCooldown = 1.0;
-        burst(target.x, target.y, "#4ade80", 20);
+      if (nearest < enemy.r + target.r + 4 && enemy.eatCooldown <= 0) {
+        target.hp = 0;
+        enemy.hp = Math.min(enemy.maxHp + 2, enemy.hp + 2);
+        enemy.r = Math.min(26, enemy.r + 2);
+        enemy.eatCooldown = 0.7;
+        burst(target.x, target.y, "#4ade80", 25);
 
-        // Split into two scaled-down copies at the glutton's position
-        const childScale = 0.6;
-        const baseHp = Math.max(1, Math.round(enemy.maxHp * childScale));
+        // Split into TWO stronger children
+        const childScale = 0.75;
+        const baseHp = Math.max(2, Math.round(enemy.maxHp * childScale));
         for (let i = 0; i < 2; i++) {
           const angle = (Math.PI * 2 / 2) * i + random(0, Math.PI * 2);
-          const cx = enemy.x + Math.cos(angle) * 18;
-          const cy = enemy.y + Math.sin(angle) * 18;
+          const cx = enemy.x + Math.cos(angle) * 22;
+          const cy = enemy.y + Math.sin(angle) * 22;
           enemies.push({
             x: cx, y: cy,
             type: "glutton",
-            r: Math.max(10, Math.round(enemy.r * childScale)),
+            r: Math.max(12, Math.round(enemy.r * childScale)),
             hp: baseHp,
             maxHp: baseHp,
-            speed: enemy.speed * 1.15,
+            speed: enemy.speed * 1.3,
             timer: random(1, 2),
             phase: "chase",
             aimX: 0, aimY: 1,
@@ -514,17 +518,16 @@ function updateEnemy(enemy, dt) {
             jumpCooldown: 0, jumpDirX: 0, jumpDirY: 0,
             explodeTimer: 0, exploded: false,
             stealthAlpha: 1,
-            eatCooldown: 1.5
+            eatCooldown: 1.0
           });
         }
-        // The original glutton dies after splitting
         enemy.hp = 0;
-        burst(enemy.x, enemy.y, "#22c55e", 30);
+        burst(enemy.x, enemy.y, "#22c55e", 35);
       }
     } else {
-      // No prey found: slowly approach player
-      enemy.x += nx * enemy.speed * 0.4 * dt;
-      enemy.y += ny * enemy.speed * 0.4 * dt;
+      // No prey: chase player aggressively
+      enemy.x += nx * enemy.speed * 0.9 * dt;
+      enemy.y += ny * enemy.speed * 0.9 * dt;
     }
     return;
   }
@@ -601,13 +604,13 @@ function update(dt) {
         enemy.hp -= player.damage;
         burst(bullet.x, bullet.y, "#facc15", 4);
         if (enemy.hp <= 0) {
-          let points = 10;
-          if (enemy.type === "spitter") points = 25;
-          else if (enemy.type === "charger") points = 25;
-          else if (enemy.type === "bomber") points = 30;
-          else if (enemy.type === "creeper") points = 35;
-          else if (enemy.type === "leaper") points = 30;
-          else if (enemy.type === "glutton") points = 40;
+          let points = 15;
+          if (enemy.type === "spitter") points = 30;
+          else if (enemy.type === "charger") points = 30;
+          else if (enemy.type === "bomber") points = 35;
+          else if (enemy.type === "creeper") points = 40;
+          else if (enemy.type === "leaper") points = 35;
+          else if (enemy.type === "glutton") points = 50;
           score += points;
           burst(enemy.x, enemy.y, enemy.color);
         }
@@ -667,7 +670,7 @@ function draw() {
   ctx.stroke();
   ctx.restore();
 
-  // Charger telegraph & Bomber fuse & Leaper wind-up & Glutton eating ring
+  // Telegraphs
   for (const enemy of enemies) {
     if (enemy.type === "charger" && enemy.phase === "warn") {
       ctx.save();
@@ -702,7 +705,7 @@ function draw() {
     }
     if (enemy.type === "glutton") {
       ctx.save();
-      ctx.strokeStyle = "rgba(74,222,128,.5)";
+      ctx.strokeStyle = "rgba(74,222,128,.6)";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(enemy.x, enemy.y, enemy.r + 4 + Math.sin(elapsed * 8) * 2, 0, Math.PI * 2);
@@ -730,7 +733,6 @@ function draw() {
     circle(enemy.x - 5, enemy.y - 3, 2.5, "#101b24");
     circle(enemy.x + 5, enemy.y - 3, 2.5, "#101b24");
 
-    // Type-specific decorations
     if (enemy.type === "spitter") {
       circle(enemy.x, enemy.y + 6, 4, "#581c87");
     }
@@ -773,7 +775,6 @@ function draw() {
       }
     }
     if (enemy.type === "glutton") {
-      // Big mouth + teeth
       ctx.fillStyle = "#14532d";
       ctx.beginPath();
       ctx.arc(enemy.x, enemy.y + 4, enemy.r * .55, 0, Math.PI);
@@ -793,16 +794,13 @@ function draw() {
     ctx.globalAlpha = 1;
   }
 
-  // Bullets
   for (const bullet of bullets) circle(bullet.x, bullet.y, 4, "#fef08a");
 
-  // Hostile orbs
   for (const orb of hostile) {
     circle(orb.x, orb.y, orb.r + 3, "#581c87");
     circle(orb.x, orb.y, orb.r, "#e879f9");
   }
 
-  // Particles
   for (const p of particles) {
     ctx.globalAlpha = Math.max(0, p.life / .55);
     ctx.fillStyle = p.color;
@@ -810,7 +808,6 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // Player
   if (mode !== "over") {
     ctx.save();
     ctx.globalAlpha = invulnerability > 0 ? .4 + Math.abs(Math.sin(elapsed * 20)) * .6 : 1;
@@ -870,7 +867,6 @@ function release(event) {
 canvas.addEventListener("pointerup", release);
 canvas.addEventListener("pointercancel", release);
 canvas.addEventListener("lostpointercapture", release);
-
 canvas.addEventListener("contextmenu", event => { event.preventDefault(); });
 
 $("dash").addEventListener("pointerdown", event => { event.preventDefault(); dash(); });
@@ -905,8 +901,8 @@ document.addEventListener("visibilitychange", () => {
 
 showPanel(
   "DASH & DODGE",
-  "New: Gluttons eat other zombies and split into two! Bombers explode, " +
-  "Creepers stealth, and Leapers pounce. Keep moving and use your dash to escape!",
+  "Zombies are tougher and more aggressive now! Gluttons eat and split. " +
+  "Bombers explode, Creepers stealth, and Leapers pounce. Stay mobile!",
   [["Start survival", reset]]
 );
 
