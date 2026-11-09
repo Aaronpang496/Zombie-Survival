@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>DASH & DODGE</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -14,20 +14,25 @@
     justify-content: center;
     align-items: center;
     height: 100vh;
+    height: 100dvh;
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     overflow: hidden;
+    touch-action: none;
   }
 
-  /* ADDED BORDER AND MARGIN SO IT NEVER TOUCHES THE SCREEN EDGE */
+  /* Perfectly scales to fit the phone screen without cutting off */
   #game-frame {
     position: relative;
-    width: 390px;
+    width: 400px;
     height: 700px;
+    max-width: 100vw;
+    max-height: 100vh;
+    max-height: 100dvh;
     background: #0a0f14;
     overflow: hidden;
     box-shadow: 0 0 30px rgba(0,0,0,0.9);
     border-radius: 12px;
-    border: 2px solid #1e293b;
+    border: 1px solid #1e293b;
   }
 
   #hud {
@@ -53,8 +58,7 @@
   #score-block .hud-value { color: #38bdf8; }
 
   #arena { position: absolute; inset: 0; }
-  /* MATCHING THE NEW FRAME SIZE */
-  #game { display: block; width: 390px; height: 700px; touch-action: none; }
+  #game { display: block; width: 100%; height: 100%; touch-action: none; }
 
   #panel {
     position: absolute; inset: 0; z-index: 30;
@@ -78,7 +82,6 @@
   }
   #choices button:active { transform: translateY(2px); box-shadow: 0 2px 0 #166534; }
 
-  /* CONTROLS */
   #dash {
     position: absolute; bottom: 100px; right: 24px;
     width: 76px; height: 76px; border-radius: 50%;
@@ -141,9 +144,9 @@ const $ = id => document.getElementById(id);
 const canvas = $("game");
 const ctx = canvas.getContext("2d");
 
-const W = 390;
+const W = 400;
 const H = 700;
-const PAD = 24; // Thick wall barrier size
+const PAD = 4; // Tiny invisible margin so they don't visually clip through the very edge
 let RANGE = 140; 
 const BULLET_SPEED = 520;
 const MAX_HP = 5;
@@ -273,7 +276,7 @@ function spawn() {
     else if (wave>=2) { if(r<.16) type="spitter"; else if(r<.32) type="charger"; }
     else { if(r<.18) type="spitter"; }
   }
-  // Spawn just outside the walls so they walk in
+  
   let edge = Math.floor(random(0,4)), x, y;
   if(edge===0){x=PAD-20;y=random(PAD+30,H-PAD-30);} 
   else if(edge===1){x=W-PAD+20;y=random(PAD+30,H-PAD-30);} 
@@ -404,7 +407,7 @@ function updateEnemy(e, dt) {
     } else { e.x+=nx*e.speed*.8*dt; e.y+=ny*e.speed*.8*dt; }
   }
 
-  // STRICT COLLISION: Cannot pass the yellow wall
+  // STRICT INVISIBLE WALLS
   e.x = clamp(e.x, PAD + e.r, W - PAD - e.r);
   e.y = clamp(e.y, PAD + e.r, H - PAD - e.r);
 }
@@ -435,7 +438,7 @@ function update(dt) {
     if(dir.x||dir.y){player.dirX=dir.x;player.dirY=dir.y;}
   }
   
-  // STRICT COLLISION: Player cannot pass the yellow wall
+  // STRICT INVISIBLE WALLS
   player.x=clamp(player.x, PAD + player.r, W - PAD - player.r);
   player.y=clamp(player.y, PAD + player.r, H - PAD - player.r);
 
@@ -484,15 +487,10 @@ function draw() {
   
   ctx.fillStyle = "#0a0e13"; ctx.fillRect(0,0,W,H);
   
-  // DRAW STRICT YELLOW BOUNDARIES
-  ctx.strokeStyle = "rgba(251,191,36,.4)"; 
-  ctx.lineWidth = 4; 
-  ctx.strokeRect(PAD, PAD, W-PAD*2, H-PAD*2);
+  // Subtle grid pattern on the ground
+  ctx.strokeStyle = "rgba(255,255,255,.02)"; ctx.lineWidth=1; ctx.beginPath();
+  for(let i=0;i<30;i++){ctx.moveTo(random(0,W),random(0,H));ctx.lineTo(random(0,W),random(0,H));} ctx.stroke();
   
-  // Inner dark area
-  ctx.fillStyle = "rgba(0,0,0,0.2)"; 
-  ctx.fillRect(PAD, PAD, W-PAD*2, H-PAD*2);
-
   if (!player) { ctx.restore(); return; }
 
   ctx.save(); ctx.strokeStyle="rgba(56,189,248,.1)"; ctx.setLineDash([6,10]); ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(player.x,player.y,RANGE,0,Math.PI*2); ctx.stroke(); ctx.restore();
