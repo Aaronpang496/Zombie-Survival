@@ -18,7 +18,6 @@
     overflow: hidden;
   }
 
-  /* FIXED SIZE FRAME - Exactly 400x700 */
   #game-frame {
     position: relative;
     width: 400px;
@@ -30,7 +29,6 @@
     border: 1px solid #1e293b;
   }
 
-  /* ---------- Top HUD ---------- */
   #hud {
     position: absolute;
     top: 0; left: 0; right: 0;
@@ -53,11 +51,9 @@
   #wave-block .hud-value { color: #fbbf24; }
   #score-block .hud-value { color: #38bdf8; }
 
-  /* ---------- Canvas Arena ---------- */
   #arena { position: absolute; inset: 0; }
   #game { display: block; width: 400px; height: 700px; touch-action: none; }
 
-  /* ---------- Menus ---------- */
   #panel {
     position: absolute; inset: 0; z-index: 30;
     display: flex; flex-direction: column; justify-content: center; align-items: center;
@@ -80,9 +76,9 @@
   }
   #choices button:active { transform: translateY(2px); box-shadow: 0 2px 0 #166534; }
 
-  /* ---------- Floating Controls ---------- */
+  /* FLOATING CONTROLS - Lifted up by 50px */
   #dash {
-    position: absolute; bottom: 24px; right: 24px;
+    position: absolute; bottom: 50px; right: 24px;
     width: 76px; height: 76px; border-radius: 50%;
     border: 3px solid rgba(56,189,248,.4);
     background: radial-gradient(circle at 35% 35%, #67e8f9, #22d3ee);
@@ -102,7 +98,7 @@
   }
 
   #joystick {
-    position: absolute; bottom: 24px; left: 24px;
+    position: absolute; bottom: 50px; left: 24px;
     width: 110px; height: 110px; border-radius: 50%;
     background: rgba(15,23,42,.6); border: 2px solid rgba(148,163,184,.2);
     z-index: 20; touch-action: none;
@@ -143,10 +139,9 @@ const $ = id => document.getElementById(id);
 const canvas = $("game");
 const ctx = canvas.getContext("2d");
 
-// STRICT DIMENSIONS
 const W = 400;
 const H = 700;
-const RANGE = 190;
+let RANGE = 150; // Reduced from 190
 const BULLET_SPEED = 520;
 const MAX_HP = 5;
 
@@ -164,7 +159,6 @@ let pointer = null, moveTarget = null;
 const keys = new Set();
 let joyActive = false, joyId = null, joyCenter = {x:0,y:0}, joyVec = {x:0,y:0}, joyMax = 36;
 
-// Initialize Canvas size
 const dpr = window.devicePixelRatio || 1;
 canvas.width = W * dpr;
 canvas.height = H * dpr;
@@ -208,17 +202,18 @@ function startWave() {
 }
 
 function reset() {
-  player = { x: W/2, y: H/2, r: 12, hp: MAX_HP, speed: 230, dmg: 1, rate: .5, dirX: 0, dirY: -1, dashX: 0, dashY: -1, dashTime: 0, dashCd: 0, flash: 0 };
-  wave = 1; score = 0; elapsed = 0; particles = []; startWave();
+  // Speed reduced from 230 to 180. Fire rate slowed slightly.
+  player = { x: W/2, y: H/2, r: 12, hp: MAX_HP, speed: 180, dmg: 1, rate: .55, dirX: 0, dirY: -1, dashX: 0, dashY: -1, dashTime: 0, dashCd: 0, flash: 0 };
+  wave = 1; score = 0; elapsed = 0; particles = []; RANGE = 150; startWave();
 }
 
 function upgrade() {
   mode = "upgrade"; clearInput(); bullets = []; hostile = [];
   let choose = fn => { fn(); wave++; startWave(); };
   showPanel("WAVE CLEARED", "Choose an upgrade", [
-    [player.rate > .18 ? "⚡ FIRE FASTER" : "🔥 +2 DMG", () => choose(() => { if (player.rate > .18) player.rate = Math.max(.15, player.rate*.8); else player.dmg += 2; })],
+    [player.rate > .18 ? "⚡ FIRE FASTER" : "🔥 +2 DMG", () => choose(() => { if (player.rate > .18) player.rate = Math.max(.15, player.rate*.85); else player.dmg += 2; })],
     ["🔥 +2 DMG", () => choose(() => player.dmg += 2)],
-    [player.hp < MAX_HP ? "❤️ RECOVER 2 LIVES" : "👟 MOVE FASTER", () => choose(() => { if (player.hp < MAX_HP) player.hp = Math.min(MAX_HP, player.hp + 2); else player.speed = Math.min(360, player.speed*1.12); })]
+    [player.hp < MAX_HP ? "❤️ RECOVER 2 LIVES" : "👟 MOVE SLIGHTLY FASTER", () => choose(() => { if (player.hp < MAX_HP) player.hp = Math.min(MAX_HP, player.hp + 2); else player.speed = Math.min(260, player.speed * 1.05); })]
   ]);
 }
 
@@ -285,13 +280,13 @@ function spawn() {
 function spawnEnemy(type, x, y) {
   let hpBonus = Math.floor((wave-1)/3), hp, spd, r, col, tm;
   switch(type) {
-    case "charger": hp=3+hpBonus; spd=Math.min(130,55+wave*6); r=18; col="#fb7185"; tm=random(1.5,2.5); break;
-    case "spitter": hp=2+hpBonus; spd=Math.min(110,45+wave*5); r=15; col="#c084fc"; tm=1.5; break;
-    case "bomber": hp=3+hpBonus; spd=Math.min(100,42+wave*5); r=16; col="#3b82f6"; tm=random(1,2); break;
-    case "creeper": hp=3+hpBonus; spd=Math.min(90,38+wave*4); r=14; col="#eab308"; tm=0; break;
-    case "leaper": hp=4+hpBonus; spd=Math.min(120,48+wave*5); r=15; col="#f97316"; tm=random(.8,1.8); break;
-    case "glutton": hp=4+hpBonus; spd=Math.min(90,35+wave*4); r=17; col="#4ade80"; tm=random(2,4); break;
-    default: hp=2+hpBonus; spd=Math.min(140,50+wave*7); r=15; col="#86efac"; tm=random(1.5,2.5);
+    case "charger": hp=3+hpBonus; spd=Math.min(140,65+wave*6); r=18; col="#fb7185"; tm=random(1.5,2.5); break;
+    case "spitter": hp=2+hpBonus; spd=Math.min(120,55+wave*5); r=15; col="#c084fc"; tm=1.5; break;
+    case "bomber": hp=3+hpBonus; spd=Math.min(110,52+wave*5); r=16; col="#3b82f6"; tm=random(1,2); break;
+    case "creeper": hp=3+hpBonus; spd=Math.min(100,48+wave*4); r=14; col="#eab308"; tm=0; break;
+    case "leaper": hp=4+hpBonus; spd=Math.min(130,58+wave*5); r=15; col="#f97316"; tm=random(.8,1.8); break;
+    case "glutton": hp=4+hpBonus; spd=Math.min(100,45+wave*4); r=17; col="#4ade80"; tm=random(2,4); break;
+    default: hp=2+hpBonus; spd=Math.min(150,60+wave*7); r=15; col="#86efac"; tm=random(1.5,2.5);
   }
   enemies.push({ x, y, type, r, hp, maxHp:hp, speed:spd, timer:tm, phase:"chase", aimX:0, aimY:1, color:col, jumpCd:0, jumpX:0, jumpY:0, jumping:false, explodeT:0, exploded:false, alpha:1, eatCd:0, flash:0 });
 }
@@ -334,7 +329,7 @@ function updateEnemy(e, dt) {
   if (e.type==="charger") {
     if(e.phase==="warn") { if(e.timer<=0){e.phase="rush";e.timer=.6;} }
     else if(e.phase==="rush") {
-      e.x+=e.aimX*420*dt; e.y+=e.aimY*420*dt;
+      e.x+=e.aimX*440*dt; e.y+=e.aimY*440*dt;
       e.x=clamp(e.x,18,W-18); e.y=clamp(e.y,18,H-18);
       if(e.timer<=0){e.phase="recover";e.timer=.7;}
     } else if(e.phase==="recover") { if(e.timer<=0){e.phase="chase";e.timer=1.5;} }
@@ -368,7 +363,7 @@ function updateEnemy(e, dt) {
   if (e.type==="leaper") {
     if(e.jumpCd<=0&&d<300&&d>25) { e.jumpX=nx; e.jumpY=ny; e.jumpCd=1.4; e.timer=.35; e.jumping=true; }
     if(e.jumping&&e.timer>0) {
-      e.timer-=dt; e.x+=e.jumpX*520*dt; e.y+=e.jumpY*520*dt; if(e.timer<=0)e.jumping=false;
+      e.timer-=dt; e.x+=e.jumpX*540*dt; e.y+=e.jumpY*540*dt; if(e.timer<=0)e.jumping=false;
     } else { e.x+=nx*e.speed*.8*dt; e.y+=ny*e.speed*.8*dt; }
     e.x=clamp(e.x,18,W-18); e.y=clamp(e.y,18,H-18); return;
   }
@@ -383,8 +378,8 @@ function updateEnemy(e, dt) {
         burst(t.x,t.y,"#4ade80",25);
         for(let i=0;i<2;i++) {
           let a=(Math.PI*2/2)*i+random(0,Math.PI*2), cx=e.x+Math.cos(a)*22, cy=e.y+Math.sin(a)*22;
-          let baseHp=Math.max(2,Math.round(e.maxHp*.7));
-          enemies.push({ x:cx, y:cy, type:"glutton", r:Math.max(11,Math.round(e.r*.7)), hp:baseHp, maxHp:baseHp, speed:e.speed*1.05, timer:random(1,2), phase:"chase", aimX:0, aimY:1, color:"#4ade80", jumpCd:0, jumpX:0, jumpY:0, jumping:false, explodeT:0, exploded:false, alpha:1, eatCd:1.2, flash:0 });
+          let baseHp=Math.max(2,Math.round(e.maxHp*.8)); // Slightly tougher children
+          enemies.push({ x:cx, y:cy, type:"glutton", r:Math.max(11,Math.round(e.r*.75)), hp:baseHp, maxHp:baseHp, speed:e.speed*1.1, timer:random(1,2), phase:"chase", aimX:0, aimY:1, color:"#4ade80", jumpCd:0, jumpX:0, jumpY:0, jumping:false, explodeT:0, exploded:false, alpha:1, eatCd:1.2, flash:0 });
         }
         e.hp=0; burst(e.x,e.y,"#22c55e",35);
       }
@@ -410,7 +405,7 @@ function update(dt) {
 
   if(player.dashTime>0) {
     let st=Math.min(dt,player.dashTime);
-    player.x+=player.dashX*820*st; player.y+=player.dashY*820*st;
+    player.x+=player.dashX*780*st; player.y+=player.dashY*780*st;
     player.dashTime=Math.max(0,player.dashTime-dt);
   } else {
     let dir=movement(), st=player.speed*dt;
