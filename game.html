@@ -76,8 +76,9 @@
   }
   #choices button:active { transform: translateY(2px); box-shadow: 0 2px 0 #166534; }
 
+  /* LIFTED CONTROLS: bottom: 100px keeps them away from the browser bar */
   #dash {
-    position: absolute; bottom: 50px; right: 24px;
+    position: absolute; bottom: 100px; right: 24px;
     width: 76px; height: 76px; border-radius: 50%;
     border: 3px solid rgba(56,189,248,.4);
     background: radial-gradient(circle at 35% 35%, #67e8f9, #22d3ee);
@@ -97,7 +98,7 @@
   }
 
   #joystick {
-    position: absolute; bottom: 50px; left: 24px;
+    position: absolute; bottom: 100px; left: 24px;
     width: 110px; height: 110px; border-radius: 50%;
     background: rgba(15,23,42,.6); border: 2px solid rgba(148,163,184,.2);
     z-index: 20; touch-action: none;
@@ -140,6 +141,7 @@ const ctx = canvas.getContext("2d");
 
 const W = 400;
 const H = 700;
+const PAD = 20; // Thickness of the wall barrier
 let RANGE = 140; 
 const BULLET_SPEED = 520;
 const MAX_HP = 5;
@@ -276,37 +278,36 @@ function spawn() {
 }
 
 function spawnEnemy(type, x, y) {
-  // NEW HP SCALING SYSTEM: High, Low, Middle
   let w = wave - 1;
   let hp, spd, r, col, tm;
   
   switch(type) {
     case "charger": 
-      hp = Math.round(8 * Math.pow(1.25, w)); // HIGH HP TANK
+      hp = Math.round(8 * Math.pow(1.25, w)); 
       spd = Math.min(140, 65 + wave * 6); 
       r = 18; col = "#fb7185"; tm = random(1.5, 2.5); break;
     case "spitter": 
-      hp = Math.round(2 * Math.pow(1.2, w)); // LOW HP
+      hp = Math.round(2 * Math.pow(1.2, w)); 
       spd = Math.min(120, 55 + wave * 5); 
       r = 15; col = "#c084fc"; tm = 1.5; break;
     case "bomber": 
-      hp = Math.round(5 * Math.pow(1.2, w)); // MEDIUM
+      hp = Math.round(5 * Math.pow(1.2, w)); 
       spd = Math.min(110, 52 + wave * 5); 
       r = 16; col = "#3b82f6"; tm = random(1, 2); break;
     case "creeper": 
-      hp = Math.round(3 * Math.pow(1.25, w)); // LOW-MED
+      hp = Math.round(3 * Math.pow(1.25, w)); 
       spd = Math.min(100, 48 + wave * 4); 
       r = 14; col = "#eab308"; tm = 0; break;
     case "leaper": 
-      hp = Math.round(6 * Math.pow(1.2, w)); // MEDIUM-HIGH
+      hp = Math.round(6 * Math.pow(1.2, w)); 
       spd = Math.min(130, 58 + wave * 5); 
       r = 15; col = "#f97316"; tm = random(.8, 1.8); break;
     case "glutton": 
-      hp = Math.round(10 * Math.pow(1.25, w)); // HIGHEST HP (TANK)
+      hp = Math.round(10 * Math.pow(1.25, w)); 
       spd = Math.min(100, 45 + wave * 4); 
       r = 17; col = "#4ade80"; tm = random(2, 4); break;
-    default: // walker
-      hp = Math.round(2 * Math.pow(1.18, w)); // LOW HP
+    default: 
+      hp = Math.round(2 * Math.pow(1.18, w)); 
       spd = Math.min(150, 60 + wave * 7); 
       r = 15; col = "#86efac"; tm = random(1.5, 2.5);
   }
@@ -333,12 +334,10 @@ function updateEnemy(e, dt) {
   e.timer-=dt; if(e.jumpCd>0)e.jumpCd-=dt; if(e.eatCd>0)e.eatCd-=dt; if(e.flash>0)e.flash-=dt;
 
   if (e.type==="walker") {
-    let b = d<200?1.2:1; e.x+=nx*e.speed*b*dt; e.y+=ny*e.speed*b*dt; return;
-  }
-  if (e.type==="spitter") {
+    let b = d<200?1.2:1; e.x+=nx*e.speed*b*dt; e.y+=ny*e.speed*b*dt;
+  } else if (e.type==="spitter") {
     let dir = d>190?1:(d<150?-1:0);
     e.x+=nx*e.speed*dir*dt; e.y+=ny*e.speed*dir*dt;
-    e.x=clamp(e.x,18,W-18); e.y=clamp(e.y,18,H-18);
     if(e.timer<=0) {
       let spd=Math.min(260,160+wave*5);
       for(let i=-1;i<=1;i++) {
@@ -347,22 +346,17 @@ function updateEnemy(e, dt) {
       }
       e.timer=Math.max(1,2.2-wave*.08);
     }
-    return;
-  }
-  if (e.type==="charger") {
+  } else if (e.type==="charger") {
     if(e.phase==="warn") { if(e.timer<=0){e.phase="rush";e.timer=.6;} }
     else if(e.phase==="rush") {
       e.x+=e.aimX*440*dt; e.y+=e.aimY*440*dt;
-      e.x=clamp(e.x,18,W-18); e.y=clamp(e.y,18,H-18);
       if(e.timer<=0){e.phase="recover";e.timer=.7;}
     } else if(e.phase==="recover") { if(e.timer<=0){e.phase="chase";e.timer=1.5;} }
     else {
       e.x+=nx*e.speed*dt; e.y+=ny*e.speed*dt;
       if(e.timer<=0 && d<350){e.phase="warn";e.timer=.8;e.aimX=nx;e.aimY=ny;}
     }
-    return;
-  }
-  if (e.type==="bomber") {
+  } else if (e.type==="bomber") {
     e.x+=nx*e.speed*dt; e.y+=ny*e.speed*dt;
     if(d<100&&e.explodeT===0) e.explodeT=1.1;
     if(e.explodeT>0) {
@@ -370,27 +364,21 @@ function updateEnemy(e, dt) {
       if(e.explodeT<=0&&!e.exploded) {
         e.exploded=true; addShake(8);
         if(Math.hypot(e.x-player.x,e.y-player.y)<85+player.r) hurt();
-        for(let o of enemies) { if(o===e||o.hp<=0)continue; if(Math.hypot(o.x-e.x,o.y-e.y)<85){o.hp-=4;burst(o.x,o.y,"#f97316",6);} } // Explosion deals more damage now
+        for(let o of enemies) { if(o===e||o.hp<=0)continue; if(Math.hypot(o.x-e.x,o.y-e.y)<85){o.hp-=4;burst(o.x,o.y,"#f97316",6);} }
         burst(e.x,e.y,"#3b82f6",40); burst(e.x,e.y,"#f97316",25); e.hp=0;
       }
     }
-    return;
-  }
-  if (e.type==="creeper") {
+  } else if (e.type==="creeper") {
     e.alpha = .25 + Math.abs(Math.sin(elapsed*5+e.x))*.75;
     let fast = e.alpha<.65, mult = fast?2.3:1;
     if(fast&&d<120&&d>25){ e.x+=nx*e.speed*mult*1.6*dt; e.y+=ny*e.speed*mult*1.6*dt; }
     else { e.x+=nx*e.speed*mult*dt; e.y+=ny*e.speed*mult*dt; }
-    return;
-  }
-  if (e.type==="leaper") {
+  } else if (e.type==="leaper") {
     if(e.jumpCd<=0&&d<300&&d>25) { e.jumpX=nx; e.jumpY=ny; e.jumpCd=1.4; e.timer=.35; e.jumping=true; }
     if(e.jumping&&e.timer>0) {
       e.timer-=dt; e.x+=e.jumpX*540*dt; e.y+=e.jumpY*540*dt; if(e.timer<=0)e.jumping=false;
     } else { e.x+=nx*e.speed*.8*dt; e.y+=ny*e.speed*.8*dt; }
-    e.x=clamp(e.x,18,W-18); e.y=clamp(e.y,18,H-18); return;
-  }
-  if (e.type==="glutton") {
+  } else if (e.type==="glutton") {
     let t=null, min=Infinity;
     for(let o of enemies) { if(o===e||o.hp<=0||o.type==="glutton")continue; let d=Math.hypot(o.x-e.x,o.y-e.y); if(d<min){min=d;t=o;} }
     if(t) {
@@ -407,8 +395,11 @@ function updateEnemy(e, dt) {
         e.hp=0; burst(e.x,e.y,"#22c55e",35);
       }
     } else { e.x+=nx*e.speed*.8*dt; e.y+=ny*e.speed*.8*dt; }
-    return;
   }
+
+  // STRICT EDGE COLLISION: All enemies are now locked inside the PAD boundary
+  e.x = clamp(e.x, PAD + e.r, W - PAD - e.r);
+  e.y = clamp(e.y, PAD + e.r, H - PAD - e.r);
 }
 
 function hurt() {
@@ -436,7 +427,9 @@ function update(dt) {
     player.x+=dir.x*st; player.y+=dir.y*st;
     if(dir.x||dir.y){player.dirX=dir.x;player.dirY=dir.y;}
   }
-  player.x=clamp(player.x,15,W-15); player.y=clamp(player.y,15,H-15);
+  // STRICT EDGE COLLISION: Player is locked inside the PAD boundary
+  player.x=clamp(player.x, PAD + player.r, W - PAD - player.r);
+  player.y=clamp(player.y, PAD + player.r, H - PAD - player.r);
 
   spawnClock-=dt; if(remaining>0&&spawnClock<=0){spawn();spawnClock=Math.max(.4,1.1-wave*.04);}
   for(let e of enemies) updateEnemy(e,dt);
@@ -482,11 +475,17 @@ function draw() {
   ctx.translate(shakeX, shakeY);
   
   ctx.fillStyle = "#0a0e13"; ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle = "rgba(255,255,255,.02)"; ctx.lineWidth=1; ctx.beginPath();
-  for(let i=0;i<30;i++){ctx.moveTo(random(0,W),random(0,H));ctx.lineTo(random(0,W),random(0,H));} ctx.stroke();
-  ctx.strokeStyle = "rgba(255,255,255,.03)"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(W/2,H/2,80,0,Math.PI*2); ctx.stroke();
-  let border=12; ctx.strokeStyle="rgba(251,191,36,.15)"; ctx.lineWidth=4; ctx.strokeRect(border,border,W-border*2,H-border*2);
-  let vg=ctx.createRadialGradient(W/2,H/2,H*.2,W/2,H/2,H*.7); vg.addColorStop(0,"rgba(0,0,0,0)"); vg.addColorStop(1,"rgba(0,0,0,.8)"); ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+  
+  // Draw Hazard Walls
+  let border = PAD;
+  ctx.strokeStyle = "rgba(251,191,36,.3)"; // Brighter yellow to show the wall
+  ctx.lineWidth = 4; 
+  ctx.strokeRect(border/2, border/2, W-border, H-border);
+  
+  // Vignette inside the walls
+  let vg=ctx.createRadialGradient(W/2,H/2,H*.2,W/2,H/2,H*.7); vg.addColorStop(0,"rgba(0,0,0,0)"); vg.addColorStop(1,"rgba(0,0,0,.8)"); 
+  ctx.fillStyle=vg; 
+  ctx.fillRect(border, border, W-border*2, H-border*2);
 
   if (!player) { ctx.restore(); return; }
 
