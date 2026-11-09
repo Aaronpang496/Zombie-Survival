@@ -2,16 +2,29 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>DASH & DODGE</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
+
+  html {
+    height: 100vh;
+    height: 100dvh;
+    overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
     height: 100%;
+    margin: 0;
+    overflow: hidden;
+    position: fixed;
+    inset: 0;
+    width: 100%;
     background: #05080d;
     color: #e2e8f0;
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    overflow: hidden;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
@@ -24,6 +37,8 @@
     inset: 0;
     display: flex;
     flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
   }
 
   /* ---------- Top HUD ---------- */
@@ -33,40 +48,36 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 12px 18px;
+    gap: 10px;
+    padding: 10px 16px;
+    padding-top: max(10px, env(safe-area-inset-top));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
     background: linear-gradient(180deg, rgba(5,8,13,.95) 0%, rgba(5,8,13,.7) 70%, transparent 100%);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     font-weight: 700;
-    font-size: 14px;
+    font-size: 13px;
     letter-spacing: .5px;
+    flex-shrink: 0;
   }
-  .hud-block {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .hud-block { display: flex; align-items: center; gap: 7px; }
   .hud-label {
-    font-size: 10px;
+    font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 2px;
     color: #64748b;
     font-weight: 800;
   }
   .hud-value {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 900;
     color: #f1f5f9;
     font-variant-numeric: tabular-nums;
   }
-  #health-pips {
-    display: flex;
-    gap: 4px;
-  }
+  #health-pips { display: flex; gap: 3px; }
   .pip {
-    width: 14px;
-    height: 14px;
+    width: 12px; height: 12px;
     border-radius: 50%;
     background: #1e293b;
     border: 1.5px solid #334155;
@@ -86,16 +97,21 @@
     flex: 1;
     min-height: 0;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   #game {
     display: block;
     width: 100%;
     height: 100%;
+    object-fit: contain;
     background: radial-gradient(ellipse at center, #0d1a26 0%, #05080d 100%);
     cursor: crosshair;
+    touch-action: none;
   }
 
-  /* ---------- Panels (menus) ---------- */
+  /* ---------- Panels ---------- */
   #panel {
     position: absolute;
     inset: 0;
@@ -104,7 +120,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 28px;
+    padding: 24px;
     text-align: center;
     background: radial-gradient(ellipse at center, rgba(13,26,38,.94) 0%, rgba(5,8,13,.98) 100%);
     backdrop-filter: blur(6px);
@@ -112,12 +128,9 @@
     animation: fadeIn .35s ease;
   }
   #panel.hidden { display: none; }
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   #panel h1 {
-    font-size: 42px;
+    font-size: 40px;
     font-weight: 900;
     letter-spacing: 4px;
     background: linear-gradient(180deg, #a5f3fc 0%, #38bdf8 50%, #0284c7 100%);
@@ -129,7 +142,7 @@
     line-height: 1;
   }
   #panel h2 {
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 900;
     letter-spacing: 2px;
     color: #86efac;
@@ -137,27 +150,26 @@
     text-shadow: 0 0 20px rgba(134,239,172,.4);
   }
   #panel p {
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.6;
     color: #94a3b8;
-    max-width: 380px;
-    margin-bottom: 24px;
+    max-width: 340px;
+    margin-bottom: 22px;
   }
   #choices {
     width: 100%;
-    max-width: 340px;
+    max-width: 320px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
   }
   #choices button {
-    position: relative;
     border: 0;
     border-radius: 14px;
-    padding: 16px 20px;
+    padding: 15px 18px;
     background: linear-gradient(180deg, #86efac 0%, #4ade80 100%);
     color: #052e16;
-    font: 800 15px/1.3 'Segoe UI', system-ui, sans-serif;
+    font: 800 14px/1.3 'Segoe UI', system-ui, sans-serif;
     letter-spacing: .3px;
     cursor: pointer;
     transition: transform .12s ease, box-shadow .12s ease;
@@ -172,18 +184,22 @@
     position: relative;
     z-index: 20;
     display: flex;
-    gap: 10px;
-    padding: 12px 18px 18px;
+    gap: 8px;
+    padding: 10px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
     background: linear-gradient(0deg, rgba(5,8,13,.95) 0%, rgba(5,8,13,.6) 60%, transparent 100%);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    flex-shrink: 0;
   }
   .ctrl-btn {
     flex: 1;
     border: 0;
-    border-radius: 16px;
-    padding: 18px 10px;
-    font: 900 15px 'Segoe UI', system-ui, sans-serif;
+    border-radius: 14px;
+    padding: 15px 10px;
+    font: 900 14px 'Segoe UI', system-ui, sans-serif;
     letter-spacing: 1.5px;
     cursor: pointer;
     transition: transform .1s, filter .1s, box-shadow .1s;
@@ -205,7 +221,6 @@
     cursor: default;
     opacity: .7;
   }
-  #dash:not(:disabled):active { box-shadow: 0 1px 0 #0e7490, 0 4px 12px rgba(34,211,238,.2); }
   #pause {
     flex: 1;
     background: linear-gradient(180deg, #c4b5fd 0%, #a78bfa 100%);
@@ -216,10 +231,10 @@
   /* ---------- Joystick ---------- */
   #joystick {
     position: absolute;
-    bottom: 24px;
-    left: 24px;
-    width: 130px;
-    height: 130px;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    left: max(20px, env(safe-area-inset-left));
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
     background: radial-gradient(circle, rgba(56,189,248,.15) 0%, rgba(56,189,248,.05) 70%, transparent 100%);
     border: 2px solid rgba(56,189,248,.25);
@@ -231,13 +246,13 @@
   }
   #joystick.active { opacity: 1; }
   @media (pointer: coarse) {
-    #joystick { display: block; opacity: .8; }
+    #joystick { display: block; opacity: .85; }
     #joystick.active { opacity: 1; }
   }
   #joystickKnob {
     position: absolute;
-    width: 58px;
-    height: 58px;
+    width: 54px;
+    height: 54px;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 35%, #a5f3fc, #38bdf8 60%, #0284c7 100%);
     border: 2px solid #a5f3fc;
@@ -246,14 +261,13 @@
     transform: translate(-50%, -50%);
     pointer-events: none;
     box-shadow: 0 0 24px rgba(56,189,248,.7), inset 0 -4px 12px rgba(0,0,0,.3);
-    transition: transform .05s;
   }
 
   /* ---------- Desktop hint ---------- */
   #hint {
     position: absolute;
-    bottom: 24px;
-    right: 24px;
+    bottom: max(24px, env(safe-area-inset-bottom));
+    right: max(24px, env(safe-area-inset-right));
     font-size: 11px;
     color: #475569;
     text-align: right;
@@ -264,6 +278,37 @@
   }
   #hint b { color: #94a3b8; }
   @media (pointer: coarse) { #hint { display: none; } }
+
+  /* ---------- Compact layout for small iPhones ---------- */
+  @media (max-height: 700px) {
+    #hud { padding: 6px 12px; padding-top: max(6px, env(safe-area-inset-top)); }
+    .hud-value { font-size: 14px; }
+    .hud-label { font-size: 8px; letter-spacing: 1.5px; }
+    .pip { width: 11px; height: 11px; }
+    #controls { padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); gap: 6px; }
+    .ctrl-btn { padding: 12px 8px; font-size: 12px; border-radius: 12px; }
+    #joystick { width: 100px; height: 100px; bottom: max(14px, env(safe-area-inset-bottom)); left: max(14px, env(safe-area-inset-left)); }
+    #joystickKnob { width: 44px; height: 44px; }
+    #panel h1 { font-size: 30px; letter-spacing: 3px; }
+    #panel h2 { font-size: 22px; }
+    #panel p { font-size: 12px; margin-bottom: 16px; }
+    #choices button { padding: 12px 14px; font-size: 13px; }
+    #hint { display: none; }
+  }
+
+  @media (max-height: 560px) {
+    #hud { padding: 4px 10px; padding-top: max(4px, env(safe-area-inset-top)); }
+    .hud-label { display: none; }
+    .hud-value { font-size: 13px; }
+    #controls { padding: 6px 10px; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+    .ctrl-btn { padding: 10px 6px; font-size: 11px; }
+    #joystick { width: 88px; height: 88px; }
+    #joystickKnob { width: 38px; height: 38px; }
+    #panel h1 { font-size: 26px; }
+    #panel h2 { font-size: 18px; }
+    #panel p { font-size: 11px; margin-bottom: 12px; }
+    #choices button { padding: 10px 12px; font-size: 12px; }
+  }
 </style>
 </head>
 <body>
@@ -286,9 +331,7 @@
   <div id="arena">
     <canvas id="game" width="480" height="600" tabindex="0" aria-label="Zombie survival arena"></canvas>
     <div id="joystick"><div id="joystickKnob"></div></div>
-    <div id="hint">
-      <b>WASD</b> move · <b>SPACE</b> dash · <b>P</b> pause
-    </div>
+    <div id="hint"><b>WASD</b> move · <b>SPACE</b> dash · <b>P</b> pause</div>
     <div id="panel">
       <h1 id="heading"></h1>
       <p id="message"></p>
@@ -307,9 +350,7 @@
 const $ = id => document.getElementById(id);
 const canvas = $("game");
 const ctx = canvas.getContext("2d");
-let W = 480, H = 600;
 
-// We render at a fixed internal resolution and scale to fit
 const BASE_W = 480;
 const BASE_H = 600;
 const RANGE = 190;
@@ -323,7 +364,7 @@ let bullets = [];
 let hostile = [];
 let particles = [];
 let trails = [];
-let floaters = []; // floating score text
+let floaters = [];
 
 let wave = 1;
 let score = 0;
@@ -334,9 +375,7 @@ let shotClock = 0;
 let invulnerability = 0;
 let elapsed = 0;
 
-// Screen shake
-let shake = 0;
-let shakeX = 0, shakeY = 0;
+let shake = 0, shakeX = 0, shakeY = 0;
 
 let pointer = null;
 let moveTarget = null;
@@ -360,22 +399,24 @@ function clearInput() {
 function resize() {
   const arena = $("arena");
   const rect = arena.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const aspect = BASE_W / BASE_H;
-  let cw = rect.width;
-  let ch = rect.height;
+  let cw = rect.width, ch = rect.height;
   if (cw / ch > aspect) cw = ch * aspect;
   else ch = cw / aspect;
-  W = cw; H = ch;
   canvas.style.width = cw + "px";
   canvas.style.height = ch + "px";
   canvas.width = Math.round(cw * dpr);
   canvas.height = Math.round(ch * dpr);
   ctx.setTransform(dpr * cw / BASE_W, 0, 0, dpr * ch / BASE_H, 0, 0);
-  // Internal logical size stays BASE_W x BASE_H; we scale drawing via setTransform
-  W = BASE_W; H = BASE_H;
 }
 window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", () => setTimeout(resize, 250));
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", resize);
+  window.visualViewport.addEventListener("scroll", resize);
+}
 
 // ---------- HUD ----------
 function renderPips() {
@@ -414,7 +455,7 @@ function showPanel(title, message, options) {
   $("panel").classList.remove("hidden");
 }
 
-// ---------- Game flow ----------
+// ---------- Flow ----------
 function startWave() {
   enemies = []; bullets = []; hostile = []; trails = []; floaters = [];
   clearInput();
@@ -442,19 +483,14 @@ function reset() {
     dashTime: 0, dashCooldown: 0,
     hurtFlash: 0,
   };
-  wave = 1;
-  score = 0;
-  elapsed = 0;
-  particles = [];
+  wave = 1; score = 0; elapsed = 0; particles = [];
   startWave();
 }
 
 function upgrade() {
   mode = "upgrade";
   clearInput(); bullets = []; hostile = [];
-  function choose(apply) {
-    apply(); wave += 1; startWave();
-  }
+  function choose(apply) { apply(); wave += 1; startWave(); }
   showPanel("WAVE CLEARED", "Choose an upgrade", [
     [player.fireRate > .18 ? "⚡ FIRE 20% FASTER" : "🔥 +2 BULLET DAMAGE", () => choose(() => {
       if (player.fireRate > .18) player.fireRate = Math.max(.15, player.fireRate * .8);
@@ -476,12 +512,10 @@ function gameOver() {
 
 function pauseGame() {
   if (mode === "playing") {
-    mode = "paused";
-    clearInput();
+    mode = "paused"; clearInput();
     showPanel("PAUSED", "Catch your breath.", [["RESUME", pauseGame]]);
   } else if (mode === "paused") {
-    mode = "playing";
-    $("panel").classList.add("hidden");
+    mode = "playing"; $("panel").classList.add("hidden");
   }
   hud();
 }
@@ -489,18 +523,12 @@ function pauseGame() {
 // ---------- Effects ----------
 function burst(x, y, color, count = 15) {
   for (let i = 0; i < count; i++) {
-    const angle = random(0, Math.PI * 2);
-    const speed = random(40, 200);
-    particles.push({
-      x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-      life: .55, maxLife: .55, color, size: random(2, 5)
-    });
+    const a = random(0, Math.PI * 2), s = random(40, 200);
+    particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: .55, maxLife: .55, color, size: random(2, 5) });
   }
 }
-function addShake(amount) { shake = Math.min(14, shake + amount); }
-function addFloater(x, y, text, color) {
-  floaters.push({ x, y, text, color, life: .9, vy: -50 });
-}
+function addShake(a) { shake = Math.min(14, shake + a); }
+function addFloater(x, y, text, color) { floaters.push({ x, y, text, color, life: .9, vy: -50 }); }
 
 // ---------- Movement ----------
 function movement() {
@@ -519,10 +547,8 @@ function dash() {
   if (mode !== "playing" || player.dashCooldown > 0) return;
   const dir = movement();
   if (dir.x || dir.y) { player.dirX = dir.x; player.dirY = dir.y; }
-  player.dashX = player.dirX;
-  player.dashY = player.dirY;
-  player.dashTime = .2;
-  player.dashCooldown = 2.5;
+  player.dashX = player.dirX; player.dashY = player.dirY;
+  player.dashTime = .2; player.dashCooldown = 2.5;
   invulnerability = Math.max(invulnerability, .3);
   burst(player.x, player.y, "#67e8f9", 14);
   addShake(3);
@@ -538,24 +564,24 @@ function spawn() {
   else if (wave >= 5 && spawned === 9) type = "leaper";
   else if (wave >= 6 && spawned === 11) type = "glutton";
   else {
-    const roll = Math.random();
+    const r = Math.random();
     if (wave >= 6) {
-      if (roll < .08) type = "spitter"; else if (roll < .16) type = "charger";
-      else if (roll < .22) type = "bomber"; else if (roll < .28) type = "creeper";
-      else if (roll < .34) type = "leaper"; else if (roll < .40) type = "glutton";
+      if (r < .08) type = "spitter"; else if (r < .16) type = "charger";
+      else if (r < .22) type = "bomber"; else if (r < .28) type = "creeper";
+      else if (r < .34) type = "leaper"; else if (r < .40) type = "glutton";
     } else if (wave >= 5) {
-      if (roll < .10) type = "spitter"; else if (roll < .20) type = "charger";
-      else if (roll < .28) type = "bomber"; else if (roll < .36) type = "creeper";
-      else if (roll < .44) type = "leaper";
+      if (r < .10) type = "spitter"; else if (r < .20) type = "charger";
+      else if (r < .28) type = "bomber"; else if (r < .36) type = "creeper";
+      else if (r < .44) type = "leaper";
     } else if (wave >= 4) {
-      if (roll < .12) type = "spitter"; else if (roll < .24) type = "charger";
-      else if (roll < .34) type = "bomber"; else if (roll < .44) type = "creeper";
+      if (r < .12) type = "spitter"; else if (r < .24) type = "charger";
+      else if (r < .34) type = "bomber"; else if (r < .44) type = "creeper";
     } else if (wave >= 3) {
-      if (roll < .14) type = "spitter"; else if (roll < .28) type = "charger";
-      else if (roll < .40) type = "bomber";
+      if (r < .14) type = "spitter"; else if (r < .28) type = "charger";
+      else if (r < .40) type = "bomber";
     } else if (wave >= 2) {
-      if (roll < .16) type = "spitter"; else if (roll < .32) type = "charger";
-    } else { if (roll < .18) type = "spitter"; }
+      if (r < .16) type = "spitter"; else if (r < .32) type = "charger";
+    } else { if (r < .18) type = "spitter"; }
   }
   const edge = Math.floor(random(0, 4));
   let x, y;
@@ -564,7 +590,7 @@ function spawn() {
   else if (edge === 2) { x = random(20, BASE_W - 20); y = -25; }
   else { x = random(20, BASE_W - 20); y = BASE_H + 25; }
   spawnEnemy(type, x, y, 1);
-  spawned += 1; remaining -= 1;
+  spawned++; remaining--;
 }
 
 function spawnEnemy(type, x, y, scale) {
@@ -607,9 +633,7 @@ function shoot() {
     vx: Math.cos(angle) * BULLET_SPEED,
     vy: Math.sin(angle) * BULLET_SPEED,
     distanceLeft: RANGE,
-    life: 1,
   });
-  // muzzle flash
   for (let i = 0; i < 4; i++) {
     const a = angle + random(-.4, .4);
     particles.push({
@@ -623,8 +647,7 @@ function shoot() {
 
 // ---------- Enemy AI ----------
 function updateEnemy(enemy, dt) {
-  const dx = player.x - enemy.x;
-  const dy = player.y - enemy.y;
+  const dx = player.x - enemy.x, dy = player.y - enemy.y;
   const dist = Math.hypot(dx, dy) || 1;
   const nx = dx / dist, ny = dy / dist;
 
@@ -792,7 +815,6 @@ function hurt() {
 function update(dt) {
   if (mode === "paused") return;
 
-  // Screen shake decay
   if (shake > 0) {
     shake = Math.max(0, shake - dt * 40);
     shakeX = (Math.random() - .5) * shake;
@@ -894,7 +916,7 @@ function update(dt) {
   if (mode === "playing" && remaining === 0 && enemies.length === 0) upgrade();
 }
 
-// ---------- Drawing ----------
+// ---------- Draw ----------
 function circle(x, y, radius, color) {
   ctx.fillStyle = color;
   ctx.beginPath();
@@ -903,14 +925,12 @@ function circle(x, y, radius, color) {
 }
 
 function drawBackground() {
-  // Ambient glow
   const g = ctx.createRadialGradient(BASE_W / 2, BASE_H / 2, 40, BASE_W / 2, BASE_H / 2, BASE_W * .8);
   g.addColorStop(0, "#0f2233");
   g.addColorStop(1, "#05080d");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, BASE_W, BASE_H);
 
-  // Moving grid
   const offset = (elapsed * 12) % 40;
   ctx.strokeStyle = "rgba(56,189,248,.045)";
   ctx.lineWidth = 1;
@@ -919,7 +939,6 @@ function drawBackground() {
   for (let y = -offset; y <= BASE_H; y += 40) { ctx.moveTo(0, y); ctx.lineTo(BASE_W, y); }
   ctx.stroke();
 
-  // Vignette
   const vg = ctx.createRadialGradient(BASE_W / 2, BASE_H / 2, BASE_H * .35, BASE_W / 2, BASE_H / 2, BASE_H * .8);
   vg.addColorStop(0, "rgba(0,0,0,0)");
   vg.addColorStop(1, "rgba(0,0,0,.6)");
@@ -935,7 +954,6 @@ function draw() {
 
   if (!player) { ctx.restore(); return; }
 
-  // Aim range
   ctx.save();
   ctx.strokeStyle = "rgba(56,189,248,.14)";
   ctx.setLineDash([6, 10]);
@@ -945,13 +963,11 @@ function draw() {
   ctx.stroke();
   ctx.restore();
 
-  // Enemy telegraphs
   for (const e of enemies) {
     if (e.type === "charger" && e.phase === "warn") {
       ctx.save();
       ctx.strokeStyle = "rgba(251,113,133,.85)";
-      ctx.lineWidth = 3;
-      ctx.setLineDash([10, 7]);
+      ctx.lineWidth = 3; ctx.setLineDash([10, 7]);
       ctx.shadowColor = "#fb7185"; ctx.shadowBlur = 12;
       ctx.beginPath();
       ctx.moveTo(e.x, e.y);
@@ -961,8 +977,7 @@ function draw() {
     }
     if (e.type === "bomber" && e.explodeTimer > 0) {
       ctx.save();
-      ctx.strokeStyle = "#f97316";
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#f97316"; ctx.lineWidth = 3;
       ctx.shadowColor = "#f97316"; ctx.shadowBlur = 16;
       ctx.beginPath();
       ctx.arc(e.x, e.y, e.r + 6 + Math.sin(elapsed * 20) * 4, 0, Math.PI * 2);
@@ -972,8 +987,7 @@ function draw() {
     if (e.type === "leaper" && e.jumping) {
       ctx.save();
       ctx.strokeStyle = "rgba(249,115,22,.8)";
-      ctx.lineWidth = 2;
-      ctx.setLineDash([4, 6]);
+      ctx.lineWidth = 2; ctx.setLineDash([4, 6]);
       ctx.beginPath();
       ctx.moveTo(e.x, e.y);
       ctx.lineTo(e.x + e.jumpDirX * 60, e.y + e.jumpDirY * 60);
@@ -982,28 +996,23 @@ function draw() {
     }
   }
 
-  // Dash trails
   for (const t of trails) {
     ctx.globalAlpha = Math.max(0, t.life / .22) * .5;
     ctx.shadowColor = "#67e8f9"; ctx.shadowBlur = 12;
     circle(t.x, t.y, player.r, "#67e8f9");
   }
-  ctx.globalAlpha = 1;
-  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 
-  // Enemies
   for (const e of enemies) {
     let alpha = 1;
     if (e.type === "creeper") alpha = e.stealthAlpha;
     ctx.globalAlpha = alpha;
 
-    // Glow
     ctx.shadowColor = e.color;
     ctx.shadowBlur = e.hitFlash > 0 ? 24 : 12;
     circle(e.x, e.y, e.r, e.hitFlash > 0 ? "#ffffff" : e.color);
     ctx.shadowBlur = 0;
 
-    // Details
     ctx.globalAlpha = alpha;
     circle(e.x - e.r * .3, e.y - e.r * .2, e.r * .17, "#0b1220");
     circle(e.x + e.r * .3, e.y - e.r * .2, e.r * .17, "#0b1220");
@@ -1047,7 +1056,6 @@ function draw() {
       for (let i = -2; i <= 2; i++) ctx.fillRect(e.x + i * e.r * .22 - 1, e.y + e.r * .18, 2, 4);
     }
 
-    // HP bar (only if damaged)
     if (e.hp < e.maxHp) {
       ctx.globalAlpha = 1;
       const bw = e.r * 2, bx = e.x - e.r, by = e.y - e.r - 9;
@@ -1060,21 +1068,18 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // Bullets
   for (const b of bullets) {
     ctx.shadowColor = "#fef08a"; ctx.shadowBlur = 16;
     circle(b.x, b.y, 4, "#fef08a");
     ctx.shadowBlur = 0;
   }
 
-  // Hostile orbs
   for (const o of hostile) {
     ctx.shadowColor = "#e879f9"; ctx.shadowBlur = 14;
     circle(o.x, o.y, o.r, "#e879f9");
     ctx.shadowBlur = 0;
   }
 
-  // Particles
   for (const p of particles) {
     ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
     ctx.fillStyle = p.color;
@@ -1082,25 +1087,20 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // Player
   if (mode !== "over") {
     const flicker = invulnerability > 0 ? .55 + Math.abs(Math.sin(elapsed * 22)) * .45 : 1;
     ctx.globalAlpha = flicker;
 
-    // Player glow
     ctx.shadowColor = player.hurtFlash > 0 ? "#fb7185" : "#38bdf8";
     ctx.shadowBlur = player.dashTime > 0 ? 40 : 24;
     circle(player.x, player.y, player.r, player.dashTime > 0 ? "#ffffff" : (player.hurtFlash > 0 ? "#fecdd3" : "#38bdf8"));
     ctx.shadowBlur = 0;
 
-    // Eyes
     circle(player.x - 4, player.y - 3, 2.2, "#082f49");
     circle(player.x + 4, player.y - 3, 2.2, "#082f49");
 
-    // Aim indicator
     ctx.strokeStyle = "#a5f3fc";
-    ctx.lineWidth = 3;
-    ctx.lineCap = "round";
+    ctx.lineWidth = 3; ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(player.x + player.dirX * 17, player.y + player.dirY * 17);
     ctx.lineTo(player.x + player.dirX * 28, player.y + player.dirY * 28);
@@ -1110,7 +1110,6 @@ function draw() {
     ctx.globalAlpha = 1;
   }
 
-  // Floating score
   ctx.textAlign = "center";
   ctx.font = "900 16px 'Segoe UI', system-ui, sans-serif";
   for (const f of floaters) {
@@ -1119,10 +1118,8 @@ function draw() {
     ctx.shadowColor = f.color; ctx.shadowBlur = 10;
     ctx.fillText(f.text, f.x, f.y);
   }
-  ctx.shadowBlur = 0;
-  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 
-  // "Enemies left" indicator
   if (mode === "playing") {
     ctx.fillStyle = "rgba(203,213,225,.7)";
     ctx.font = "800 12px 'Segoe UI', system-ui, sans-serif";
@@ -1233,6 +1230,9 @@ document.addEventListener("visibilitychange", () => {
 
 // ---------- Boot ----------
 resize();
+requestAnimationFrame(() => setTimeout(resize, 60));
+setTimeout(resize, 300);
+
 showPanel("DASH & DODGE", "Survive the horde. Use the joystick or drag to move, and dash to escape danger.", [["START", reset]]);
 
 let previous = performance.now();
