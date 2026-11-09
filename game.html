@@ -3,17 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>DASH & DODGE</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   html, body {
-    height: 100vh;
-    height: 100dvh;
+    height: 100%;
     margin: 0;
-    background: #000; /* Black letterboxing */
+    background: #05080d; /* Dark background */
     overflow: hidden;
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     touch-action: none;
@@ -25,18 +22,19 @@
     justify-content: center;
   }
 
-  /* ---------- Game Frame (Constrained) ---------- */
+  /* ---------- Game Frame ---------- */
   #game-frame {
     position: relative;
     width: 100%;
     height: 100%;
-    max-width: 500px; /* Prevents it from getting too wide on desktop */
-    max-height: 900px;
+    max-width: 500px;
     background: #0a0f14;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    /* Adds a subtle border so you can see the edge of the game */
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
   }
 
   /* ---------- Top HUD ---------- */
@@ -51,7 +49,6 @@
     justify-content: space-between;
     gap: 10px;
     padding: 12px 16px;
-    padding-top: max(12px, env(safe-area-inset-top));
     background: linear-gradient(180deg, rgba(5,8,13,.95) 0%, rgba(5,8,13,.6) 70%, transparent 100%);
     font-weight: 700;
     font-size: 13px;
@@ -88,7 +85,7 @@
   #wave-block .hud-value { color: #fbbf24; text-shadow: 0 0 12px rgba(251,191,36,.4); }
   #score-block .hud-value { color: #38bdf8; text-shadow: 0 0 12px rgba(56,189,248,.4); }
 
-  /* ---------- Arena (Canvas) ---------- */
+  /* ---------- Arena ---------- */
   #arena {
     position: absolute;
     inset: 0;
@@ -101,7 +98,7 @@
     touch-action: none;
   }
 
-  /* ---------- Menus ---------- */
+  /* ---------- Panels ---------- */
   #panel {
     position: absolute;
     inset: 0;
@@ -163,8 +160,8 @@
   /* ---------- Floating Controls ---------- */
   #dash {
     position: absolute;
-    bottom: max(30px, env(safe-area-inset-bottom) + 10px);
-    right: max(30px, env(safe-area-inset-right) + 10px);
+    bottom: 30px;
+    right: 30px;
     width: 80px;
     height: 80px;
     border-radius: 50%;
@@ -193,8 +190,8 @@
   
   #pause {
     position: absolute;
-    top: max(14px, env(safe-area-inset-top));
-    right: max(14px, env(safe-area-inset-right));
+    top: 14px;
+    right: 14px;
     width: 38px;
     height: 38px;
     border-radius: 10px;
@@ -213,8 +210,8 @@
   /* ---------- Joystick ---------- */
   #joystick {
     position: absolute;
-    bottom: max(30px, env(safe-area-inset-bottom) + 10px);
-    left: max(30px, env(safe-area-inset-left) + 10px);
+    bottom: 30px;
+    left: 30px;
     width: 120px;
     height: 120px;
     border-radius: 50%;
@@ -237,17 +234,8 @@
     box-shadow: 0 0 15px rgba(0,0,0,.5), inset 0 -4px 8px rgba(0,0,0,.3);
   }
 
-  /* Hide joystick on desktop devices with mice */
   @media (pointer: fine) {
     #joystick { display: none; }
-  }
-
-  @media (max-height: 700px) {
-    #joystick { width: 100px; height: 100px; bottom: max(20px, env(safe-area-inset-bottom)); left: max(20px, env(safe-area-inset-left)); }
-    #joystickKnob { width: 40px; height: 40px; }
-    #dash { width: 70px; height: 70px; font-size: 12px; bottom: max(20px, env(safe-area-inset-bottom)); right: max(20px, env(safe-area-inset-right)); }
-    #panel h1 { font-size: 28px; }
-    #panel p { font-size: 12px; margin-bottom: 16px; }
   }
 </style>
 </head>
@@ -292,7 +280,7 @@ const $ = id => document.getElementById(id);
 const canvas = $("game");
 const ctx = canvas.getContext("2d");
 
-let W = 480, H = 600; // Logical size for physics, updates on resize
+let W = 480, H = 600;
 const RANGE = 190;
 const BULLET_SPEED = 520;
 const MAX_HP = 5;
@@ -346,7 +334,6 @@ function resize() {
   canvas.style.width = rect.width + "px";
   canvas.style.height = rect.height + "px";
 
-  // Update internal physics boundaries
   W = rect.width;
   H = rect.height;
 
@@ -862,11 +849,9 @@ function circle(x, y, radius, color) {
 }
 
 function drawBackground() {
-  // Base Asphalt
   ctx.fillStyle = "#0a0e13";
   ctx.fillRect(0, 0, W, H);
 
-  // Scratches
   ctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -876,7 +861,6 @@ function drawBackground() {
   }
   ctx.stroke();
 
-  // Center circle
   ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -887,13 +871,11 @@ function drawBackground() {
   ctx.moveTo(W/2, H/2 - 20); ctx.lineTo(W/2, H/2 + 20);
   ctx.stroke();
 
-  // Hazard Border
   const border = 12;
   ctx.strokeStyle = "rgba(251, 191, 36, 0.15)";
   ctx.lineWidth = 4;
   ctx.strokeRect(border, border, W - border*2, H - border*2);
 
-  // Vignette
   const vg = ctx.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.7);
   vg.addColorStop(0, "rgba(0,0,0,0)");
   vg.addColorStop(1, "rgba(0,0,0,0.8)");
@@ -909,7 +891,6 @@ function draw() {
 
   if (!player) { ctx.restore(); return; }
 
-  // Aim range
   ctx.save();
   ctx.strokeStyle = "rgba(56,189,248,.1)";
   ctx.setLineDash([6, 10]);
@@ -919,7 +900,6 @@ function draw() {
   ctx.stroke();
   ctx.restore();
 
-  // Telegraphed attacks
   for (const e of enemies) {
     if (e.type === "charger" && e.phase === "warn") {
       ctx.save();
@@ -953,7 +933,6 @@ function draw() {
     }
   }
 
-  // Trails
   for (const t of trails) {
     ctx.globalAlpha = Math.max(0, t.life / .22) * .5;
     ctx.shadowColor = "#67e8f9"; ctx.shadowBlur = 12;
@@ -961,7 +940,6 @@ function draw() {
   }
   ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 
-  // Enemies
   for (const e of enemies) {
     let alpha = 1;
     if (e.type === "creeper") alpha = e.stealthAlpha;
@@ -1027,21 +1005,18 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // Bullets
   for (const b of bullets) {
     ctx.shadowColor = "#fef08a"; ctx.shadowBlur = 16;
     circle(b.x, b.y, 4, "#fef08a");
     ctx.shadowBlur = 0;
   }
 
-  // Orbs
   for (const o of hostile) {
     ctx.shadowColor = "#e879f9"; ctx.shadowBlur = 14;
     circle(o.x, o.y, o.r, "#e879f9");
     ctx.shadowBlur = 0;
   }
 
-  // Particles
   for (const p of particles) {
     ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
     ctx.fillStyle = p.color;
@@ -1049,7 +1024,6 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // Player
   if (mode !== "over") {
     const flicker = invulnerability > 0 ? .55 + Math.abs(Math.sin(elapsed * 22)) * .45 : 1;
     ctx.globalAlpha = flicker;
@@ -1072,7 +1046,6 @@ function draw() {
     ctx.globalAlpha = 1;
   }
 
-  // Floating Score
   ctx.textAlign = "center";
   ctx.font = "900 16px 'Segoe UI', system-ui, sans-serif";
   for (const f of floaters) {
@@ -1083,7 +1056,6 @@ function draw() {
   }
   ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 
-  // Enemies left text
   if (mode === "playing") {
     ctx.fillStyle = "rgba(203,213,225,.5)";
     ctx.font = "800 11px 'Segoe UI', system-ui, sans-serif";
@@ -1124,7 +1096,6 @@ canvas.addEventListener("pointercancel", release);
 canvas.addEventListener("lostpointercapture", release);
 canvas.addEventListener("contextmenu", e => e.preventDefault());
 
-// Joystick
 const joyEl = $("joystick");
 const joyKnob = $("joystickKnob");
 function updateJoystickKnob() {
@@ -1190,7 +1161,6 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden && mode === "playing") pauseGame();
 });
 
-// ---------- Boot ----------
 resize();
 requestAnimationFrame(() => setTimeout(resize, 60));
 setTimeout(resize, 300);
