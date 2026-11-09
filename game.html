@@ -2,65 +2,319 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>DASH & DODGE</title>
 <style>
-* { box-sizing: border-box; }
-body { margin: 0; background: #080e16; color: #e2e8f0; font-family: system-ui, sans-serif; }
-.wrap { max-width: 480px; margin: auto; padding: 8px; }
-.hud { display: flex; justify-content: space-between; gap: 6px; padding: 12px 0; font-size: 14px; font-weight: 800; }
-.arena { position: relative; }
-canvas { display: block; width: 100%; height: auto; background: #101b24; border: 2px solid #334155; border-radius: 14px; touch-action: none; user-select: none; -webkit-user-select: none; }
-#panel { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 22px; text-align: center; background: rgba(4, 9, 16, .92); border-radius: 14px; }
-#panel.hidden { display: none; }
-h2 { color: #86efac; margin: 8px; }
-p { line-height: 1.5; font-size: 14px; }
-#choices { width: 100%; max-width: 320px; }
-button { border: 0; border-radius: 12px; padding: 15px 10px; background: #86efac; color: #052e16; font: bold 15px system-ui; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-#choices button { display: block; width: 100%; margin: 10px 0; }
-.controls { display: flex; gap: 10px; margin-top: 10px; }
-#dash { flex: 2; background: #67e8f9; color: #083344; }
-#dash:disabled { opacity: .5; }
-#pause { flex: 1; background: #c4b5fd; color: #2e1065; }
-small { display: block; color: #94a3b8; line-height: 1.6; margin-top: 12px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: #05080d;
+    color: #e2e8f0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ---------- Game shell ---------- */
+  #game-shell {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- Top HUD ---------- */
+  #hud {
+    position: relative;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 18px;
+    background: linear-gradient(180deg, rgba(5,8,13,.95) 0%, rgba(5,8,13,.7) 70%, transparent 100%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: .5px;
+  }
+  .hud-block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hud-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #64748b;
+    font-weight: 800;
+  }
+  .hud-value {
+    font-size: 18px;
+    font-weight: 900;
+    color: #f1f5f9;
+    font-variant-numeric: tabular-nums;
+  }
+  #health-pips {
+    display: flex;
+    gap: 4px;
+  }
+  .pip {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #1e293b;
+    border: 1.5px solid #334155;
+    transition: all .25s;
+  }
+  .pip.full {
+    background: radial-gradient(circle at 35% 35%, #fda4af, #e11d48);
+    border-color: #fb7185;
+    box-shadow: 0 0 8px rgba(244,63,94,.6);
+  }
+  #wave-block .hud-value { color: #fbbf24; text-shadow: 0 0 12px rgba(251,191,36,.4); }
+  #score-block .hud-value { color: #38bdf8; text-shadow: 0 0 12px rgba(56,189,248,.4); }
+
+  /* ---------- Arena ---------- */
+  #arena {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  #game {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, #0d1a26 0%, #05080d 100%);
+    cursor: crosshair;
+  }
+
+  /* ---------- Panels (menus) ---------- */
+  #panel {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 28px;
+    text-align: center;
+    background: radial-gradient(ellipse at center, rgba(13,26,38,.94) 0%, rgba(5,8,13,.98) 100%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: fadeIn .35s ease;
+  }
+  #panel.hidden { display: none; }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  #panel h1 {
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    background: linear-gradient(180deg, #a5f3fc 0%, #38bdf8 50%, #0284c7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 0 24px rgba(56,189,248,.5));
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+  #panel h2 {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #86efac;
+    margin-bottom: 10px;
+    text-shadow: 0 0 20px rgba(134,239,172,.4);
+  }
+  #panel p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #94a3b8;
+    max-width: 380px;
+    margin-bottom: 24px;
+  }
+  #choices {
+    width: 100%;
+    max-width: 340px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #choices button {
+    position: relative;
+    border: 0;
+    border-radius: 14px;
+    padding: 16px 20px;
+    background: linear-gradient(180deg, #86efac 0%, #4ade80 100%);
+    color: #052e16;
+    font: 800 15px/1.3 'Segoe UI', system-ui, sans-serif;
+    letter-spacing: .3px;
+    cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease;
+    box-shadow: 0 4px 0 #166534, 0 8px 20px rgba(74,222,128,.25);
+    touch-action: manipulation;
+  }
+  #choices button:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #166534, 0 12px 28px rgba(74,222,128,.35); }
+  #choices button:active { transform: translateY(2px); box-shadow: 0 1px 0 #166534, 0 4px 12px rgba(74,222,128,.2); }
+
+  /* ---------- Bottom controls ---------- */
+  #controls {
+    position: relative;
+    z-index: 20;
+    display: flex;
+    gap: 10px;
+    padding: 12px 18px 18px;
+    background: linear-gradient(0deg, rgba(5,8,13,.95) 0%, rgba(5,8,13,.6) 60%, transparent 100%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .ctrl-btn {
+    flex: 1;
+    border: 0;
+    border-radius: 16px;
+    padding: 18px 10px;
+    font: 900 15px 'Segoe UI', system-ui, sans-serif;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: transform .1s, filter .1s, box-shadow .1s;
+    touch-action: manipulation;
+    position: relative;
+    overflow: hidden;
+  }
+  .ctrl-btn:active { transform: scale(.96); }
+  #dash {
+    flex: 2;
+    background: linear-gradient(180deg, #67e8f9 0%, #22d3ee 100%);
+    color: #083344;
+    box-shadow: 0 4px 0 #0e7490, 0 8px 22px rgba(34,211,238,.3);
+  }
+  #dash:disabled {
+    background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+    color: #64748b;
+    box-shadow: 0 4px 0 #0f172a;
+    cursor: default;
+    opacity: .7;
+  }
+  #dash:not(:disabled):active { box-shadow: 0 1px 0 #0e7490, 0 4px 12px rgba(34,211,238,.2); }
+  #pause {
+    flex: 1;
+    background: linear-gradient(180deg, #c4b5fd 0%, #a78bfa 100%);
+    color: #2e1065;
+    box-shadow: 0 4px 0 #6d28d9, 0 8px 22px rgba(167,139,250,.3);
+  }
+
+  /* ---------- Joystick ---------- */
+  #joystick {
+    position: absolute;
+    bottom: 24px;
+    left: 24px;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56,189,248,.15) 0%, rgba(56,189,248,.05) 70%, transparent 100%);
+    border: 2px solid rgba(56,189,248,.25);
+    touch-action: none;
+    z-index: 15;
+    display: none;
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  #joystick.active { opacity: 1; }
+  @media (pointer: coarse) {
+    #joystick { display: block; opacity: .8; }
+    #joystick.active { opacity: 1; }
+  }
+  #joystickKnob {
+    position: absolute;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #a5f3fc, #38bdf8 60%, #0284c7 100%);
+    border: 2px solid #a5f3fc;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    box-shadow: 0 0 24px rgba(56,189,248,.7), inset 0 -4px 12px rgba(0,0,0,.3);
+    transition: transform .05s;
+  }
+
+  /* ---------- Desktop hint ---------- */
+  #hint {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    font-size: 11px;
+    color: #475569;
+    text-align: right;
+    line-height: 1.5;
+    z-index: 15;
+    pointer-events: none;
+    letter-spacing: .5px;
+  }
+  #hint b { color: #94a3b8; }
+  @media (pointer: coarse) { #hint { display: none; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="hud">
-    <span id="health">Lives: 4</span>
-    <span id="wave">Wave: 1</span>
-    <span id="score">Score: 0</span>
+<div id="game-shell">
+  <div id="hud">
+    <div class="hud-block" id="health-block">
+      <span class="hud-label">Lives</span>
+      <div id="health-pips"></div>
+    </div>
+    <div class="hud-block" id="wave-block">
+      <span class="hud-label">Wave</span>
+      <span class="hud-value" id="wave-val">1</span>
+    </div>
+    <div class="hud-block" id="score-block">
+      <span class="hud-label">Score</span>
+      <span class="hud-value" id="score-val">0</span>
+    </div>
   </div>
-  <div class="arena">
+
+  <div id="arena">
     <canvas id="game" width="480" height="600" tabindex="0" aria-label="Zombie survival arena"></canvas>
+    <div id="joystick"><div id="joystickKnob"></div></div>
+    <div id="hint">
+      <b>WASD</b> move · <b>SPACE</b> dash · <b>P</b> pause
+    </div>
     <div id="panel">
-      <h2 id="heading"></h2>
+      <h1 id="heading"></h1>
       <p id="message"></p>
       <div id="choices"></div>
     </div>
   </div>
-  <div class="controls">
-    <button id="dash">💨 DASH</button>
-    <button id="pause">Pause</button>
+
+  <div id="controls">
+    <button id="dash" class="ctrl-btn">💨 DASH</button>
+    <button id="pause" class="ctrl-btn">PAUSE</button>
   </div>
-  <small>
-    Drag inside the arena to move. Your weapon aims automatically.<br>
-    Dash toward your movement target; when stopped, dash in your last movement direction.<br>
-    🟢 Walker · 🟣 Spitter · 🔴 Charger · 🔵 Bomber · 🟡 Creeper · 🟠 Leaper · 💚 Glutton<br>
-    Red dashed lines warn of a charge. Purple orbs hurt you. Blue zombies explode.<br>
-    Gluttons eat other zombies and split into two. Keyboard: WASD/arrows, Space dash, P pause.
-  </small>
 </div>
+
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
 const canvas = $("game");
 const ctx = canvas.getContext("2d");
-const W = 480;
-const H = 600;
-const RANGE = 150;
+let W = 480, H = 600;
+
+// We render at a fixed internal resolution and scale to fit
+const BASE_W = 480;
+const BASE_H = 600;
+const RANGE = 190;
 const BULLET_SPEED = 520;
-const MAX_HP = 4;
+const MAX_HP = 5;
 
 let mode = "ready";
 let player = null;
@@ -69,6 +323,7 @@ let bullets = [];
 let hostile = [];
 let particles = [];
 let trails = [];
+let floaters = []; // floating score text
 
 let wave = 1;
 let score = 0;
@@ -79,65 +334,113 @@ let shotClock = 0;
 let invulnerability = 0;
 let elapsed = 0;
 
+// Screen shake
+let shake = 0;
+let shakeX = 0, shakeY = 0;
+
 let pointer = null;
 let moveTarget = null;
 const keys = new Set();
 
-function random(min, max) { return min + Math.random() * (max - min); }
-function clearInput() { keys.clear(); pointer = null; moveTarget = null; }
+let joyActive = false;
+let joyPointerId = null;
+let joyCenter = { x: 0, y: 0 };
+let joyVector = { x: 0, y: 0 };
+let joyMaxRadius = 40;
 
+function random(min, max) { return min + Math.random() * (max - min); }
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+function clearInput() {
+  keys.clear(); pointer = null; moveTarget = null;
+  joyVector = { x: 0, y: 0 }; joyActive = false; updateJoystickKnob();
+}
+
+// ---------- Canvas scaling ----------
+function resize() {
+  const arena = $("arena");
+  const rect = arena.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const aspect = BASE_W / BASE_H;
+  let cw = rect.width;
+  let ch = rect.height;
+  if (cw / ch > aspect) cw = ch * aspect;
+  else ch = cw / aspect;
+  W = cw; H = ch;
+  canvas.style.width = cw + "px";
+  canvas.style.height = ch + "px";
+  canvas.width = Math.round(cw * dpr);
+  canvas.height = Math.round(ch * dpr);
+  ctx.setTransform(dpr * cw / BASE_W, 0, 0, dpr * ch / BASE_H, 0, 0);
+  // Internal logical size stays BASE_W x BASE_H; we scale drawing via setTransform
+  W = BASE_W; H = BASE_H;
+}
+window.addEventListener("resize", resize);
+
+// ---------- HUD ----------
+function renderPips() {
+  const pips = $("health-pips");
+  pips.replaceChildren();
+  for (let i = 0; i < MAX_HP; i++) {
+    const p = document.createElement("div");
+    p.className = "pip" + (i < (player?.hp ?? 0) ? " full" : "");
+    pips.appendChild(p);
+  }
+}
+function hud() {
+  if (!player) return;
+  $("wave-val").textContent = wave;
+  $("score-val").textContent = score;
+  const dashBtn = $("dash");
+  dashBtn.disabled = mode !== "playing" || player.dashCooldown > 0;
+  dashBtn.textContent = player.dashCooldown > 0
+    ? "💨 " + player.dashCooldown.toFixed(1) + "s"
+    : "💨 DASH";
+  renderPips();
+}
+
+// ---------- Panels ----------
 function showPanel(title, message, options) {
   $("heading").textContent = title;
   $("message").textContent = message;
-  $("choices").replaceChildren();
+  const choices = $("choices");
+  choices.replaceChildren();
   for (const [label, action] of options) {
-    const button = document.createElement("button");
-    button.textContent = label;
-    button.onclick = action;
-    $("choices").appendChild(button);
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.onclick = action;
+    choices.appendChild(b);
   }
   $("panel").classList.remove("hidden");
 }
 
-function hud() {
-  if (!player) return;
-  $("health").textContent = "Lives: " + player.hp;
-  $("wave").textContent = "Wave: " + wave;
-  $("score").textContent = "Score: " + score;
-  $("dash").disabled = mode !== "playing" || player.dashCooldown > 0;
-  $("dash").textContent = player.dashCooldown > 0
-    ? "💨 " + player.dashCooldown.toFixed(1) + "s" : "💨 DASH";
-}
-
+// ---------- Game flow ----------
 function startWave() {
-  enemies = [];
-  bullets = [];
-  hostile = [];
-  trails = [];
+  enemies = []; bullets = []; hostile = []; trails = []; floaters = [];
   clearInput();
-  remaining = 7 + wave * 2;
+  remaining = 5 + wave * 2;
   spawned = 0;
-  spawnClock = .7;
+  spawnClock = 1.0;
   shotClock = 0;
-  player.x = W / 2;
-  player.y = H / 2;
+  player.x = BASE_W / 2;
+  player.y = BASE_H / 2;
   player.dashTime = 0;
   player.dashCooldown = 0;
-  invulnerability = 1.5;
+  invulnerability = 2.0;
   mode = "playing";
-  $("pause").textContent = "Pause";
   $("panel").classList.add("hidden");
   hud();
 }
 
 function reset() {
   player = {
-    x: W / 2, y: H / 2, r: 12,
-    hp: MAX_HP, speed: 220,
-    damage: 1, fireRate: .42,
+    x: BASE_W / 2, y: BASE_H / 2, r: 12,
+    hp: MAX_HP, speed: 230,
+    damage: 1, fireRate: .5,
     dirX: 0, dirY: -1,
     dashX: 0, dashY: -1,
-    dashTime: 0, dashCooldown: 0
+    dashTime: 0, dashCooldown: 0,
+    hurtFlash: 0,
   };
   wave = 1;
   score = 0;
@@ -148,23 +451,19 @@ function reset() {
 
 function upgrade() {
   mode = "upgrade";
-  clearInput();
-  bullets = [];
-  hostile = [];
+  clearInput(); bullets = []; hostile = [];
   function choose(apply) {
-    apply();
-    wave += 1;
-    startWave();
+    apply(); wave += 1; startWave();
   }
-  showPanel("WAVE CLEARED!", "Choose an upgrade. The next wave starts with your dash ready.", [
-    [player.fireRate > .14 ? "⚡ Fire 15% faster" : "🔥 +1 bullet damage", () => choose(() => {
-      if (player.fireRate > .14) player.fireRate = Math.max(.13, player.fireRate * .85);
-      else player.damage += 1;
+  showPanel("WAVE CLEARED", "Choose an upgrade", [
+    [player.fireRate > .18 ? "⚡ FIRE 20% FASTER" : "🔥 +2 BULLET DAMAGE", () => choose(() => {
+      if (player.fireRate > .18) player.fireRate = Math.max(.15, player.fireRate * .8);
+      else player.damage += 2;
     })],
-    ["🔥 +1 bullet damage", () => choose(() => player.damage += 1)],
-    [player.hp < MAX_HP ? "❤️ Recover one life" : "👟 Move 8% faster", () => choose(() => {
-      if (player.hp < MAX_HP) player.hp += 1;
-      else player.speed = Math.min(350, player.speed * 1.08);
+    ["🔥 +2 BULLET DAMAGE", () => choose(() => player.damage += 2)],
+    [player.hp < MAX_HP ? "❤️ RECOVER 2 LIVES" : "👟 MOVE 12% FASTER", () => choose(() => {
+      if (player.hp < MAX_HP) player.hp = Math.min(MAX_HP, player.hp + 2);
+      else player.speed = Math.min(360, player.speed * 1.12);
     })]
   ]);
 }
@@ -172,161 +471,134 @@ function upgrade() {
 function gameOver() {
   mode = "over";
   clearInput();
-  showPanel("OVERRUN!", "Wave " + wave + " · Score " + score + ". Keep moving and save your dash for danger!", [["Try again", reset]]);
+  showPanel("OVERRUN", `Wave ${wave} · Score ${score}`, [["TRY AGAIN", reset]]);
 }
 
 function pauseGame() {
   if (mode === "playing") {
     mode = "paused";
     clearInput();
-    $("pause").textContent = "Resume";
-    showPanel("PAUSED", "The zombies are waiting.", [["Resume", pauseGame]]);
+    showPanel("PAUSED", "Catch your breath.", [["RESUME", pauseGame]]);
   } else if (mode === "paused") {
     mode = "playing";
-    $("pause").textContent = "Pause";
     $("panel").classList.add("hidden");
   }
   hud();
 }
 
+// ---------- Effects ----------
 function burst(x, y, color, count = 15) {
   for (let i = 0; i < count; i++) {
     const angle = random(0, Math.PI * 2);
-    const speed = random(40, 170);
-    particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: .55, color });
+    const speed = random(40, 200);
+    particles.push({
+      x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+      life: .55, maxLife: .55, color, size: random(2, 5)
+    });
   }
 }
+function addShake(amount) { shake = Math.min(14, shake + amount); }
+function addFloater(x, y, text, color) {
+  floaters.push({ x, y, text, color, life: .9, vy: -50 });
+}
 
+// ---------- Movement ----------
 function movement() {
   let dx = Number(keys.has("ArrowRight") || keys.has("d")) - Number(keys.has("ArrowLeft") || keys.has("a"));
   let dy = Number(keys.has("ArrowDown") || keys.has("s")) - Number(keys.has("ArrowUp") || keys.has("w"));
-  if (dx === 0 && dy === 0 && moveTarget) {
-    dx = moveTarget.x - player.x;
-    dy = moveTarget.y - player.y;
+  if (joyVector.x !== 0 || joyVector.y !== 0) { dx = joyVector.x; dy = joyVector.y; }
+  else if (dx === 0 && dy === 0 && moveTarget) {
+    dx = moveTarget.x - player.x; dy = moveTarget.y - player.y;
     if (Math.hypot(dx, dy) < 3) { dx = 0; dy = 0; }
   }
-  const distance = Math.hypot(dx, dy);
-  return { x: distance ? dx / distance : 0, y: distance ? dy / distance : 0 };
+  const d = Math.hypot(dx, dy);
+  return { x: d ? dx / d : 0, y: d ? dy / d : 0 };
 }
 
 function dash() {
   if (mode !== "playing" || player.dashCooldown > 0) return;
-  const direction = movement();
-  if (direction.x !== 0 || direction.y !== 0) {
-    player.dirX = direction.x;
-    player.dirY = direction.y;
-  }
+  const dir = movement();
+  if (dir.x || dir.y) { player.dirX = dir.x; player.dirY = dir.y; }
   player.dashX = player.dirX;
   player.dashY = player.dirY;
-  player.dashTime = .18;
-  player.dashCooldown = 3;
-  invulnerability = Math.max(invulnerability, .25);
-  burst(player.x, player.y, "#67e8f9", 12);
+  player.dashTime = .2;
+  player.dashCooldown = 2.5;
+  invulnerability = Math.max(invulnerability, .3);
+  burst(player.x, player.y, "#67e8f9", 14);
+  addShake(3);
 }
 
-// ---- Spawn logic with new types ----
+// ---------- Spawning ----------
 function spawn() {
   let type = "walker";
-
-  if (spawned === 1) {
-    type = "spitter";
-  } else if (wave >= 2 && spawned === 3) {
-    type = "charger";
-  } else if (wave >= 3 && spawned === 5) {
-    type = "bomber";
-  } else if (wave >= 4 && spawned === 7) {
-    type = "creeper";
-  } else if (wave >= 5 && spawned === 9) {
-    type = "leaper";
-  } else if (wave >= 6 && spawned === 11) {
-    type = "glutton";
-  } else {
+  if (spawned === 1) type = "spitter";
+  else if (wave >= 2 && spawned === 3) type = "charger";
+  else if (wave >= 3 && spawned === 5) type = "bomber";
+  else if (wave >= 4 && spawned === 7) type = "creeper";
+  else if (wave >= 5 && spawned === 9) type = "leaper";
+  else if (wave >= 6 && spawned === 11) type = "glutton";
+  else {
     const roll = Math.random();
     if (wave >= 6) {
-      if (roll < .12) type = "spitter";
-      else if (roll < .24) type = "charger";
-      else if (roll < .34) type = "bomber";
-      else if (roll < .44) type = "creeper";
-      else if (roll < .54) type = "leaper";
-      else if (roll < .64) type = "glutton";
+      if (roll < .08) type = "spitter"; else if (roll < .16) type = "charger";
+      else if (roll < .22) type = "bomber"; else if (roll < .28) type = "creeper";
+      else if (roll < .34) type = "leaper"; else if (roll < .40) type = "glutton";
     } else if (wave >= 5) {
-      if (roll < .15) type = "spitter";
-      else if (roll < .28) type = "charger";
-      else if (roll < .40) type = "bomber";
-      else if (roll < .52) type = "creeper";
-      else if (roll < .64) type = "leaper";
+      if (roll < .10) type = "spitter"; else if (roll < .20) type = "charger";
+      else if (roll < .28) type = "bomber"; else if (roll < .36) type = "creeper";
+      else if (roll < .44) type = "leaper";
     } else if (wave >= 4) {
-      if (roll < .18) type = "spitter";
-      else if (roll < .34) type = "charger";
-      else if (roll < .46) type = "bomber";
-      else if (roll < .58) type = "creeper";
+      if (roll < .12) type = "spitter"; else if (roll < .24) type = "charger";
+      else if (roll < .34) type = "bomber"; else if (roll < .44) type = "creeper";
     } else if (wave >= 3) {
-      if (roll < .20) type = "spitter";
-      else if (roll < .36) type = "charger";
-      else if (roll < .50) type = "bomber";
+      if (roll < .14) type = "spitter"; else if (roll < .28) type = "charger";
+      else if (roll < .40) type = "bomber";
     } else if (wave >= 2) {
-      if (roll < .22) type = "spitter";
-      else if (roll < .44) type = "charger";
-    } else {
-      if (roll < .22) type = "spitter";
-    }
+      if (roll < .16) type = "spitter"; else if (roll < .32) type = "charger";
+    } else { if (roll < .18) type = "spitter"; }
   }
-
   const edge = Math.floor(random(0, 4));
   let x, y;
-  if (edge === 0) { x = -25; y = random(20, H - 20); }
-  else if (edge === 1) { x = W + 25; y = random(20, H - 20); }
-  else if (edge === 2) { x = random(20, W - 20); y = -25; }
-  else { x = random(20, W - 20); y = H + 25; }
-
+  if (edge === 0) { x = -25; y = random(20, BASE_H - 20); }
+  else if (edge === 1) { x = BASE_W + 25; y = random(20, BASE_H - 20); }
+  else if (edge === 2) { x = random(20, BASE_W - 20); y = -25; }
+  else { x = random(20, BASE_W - 20); y = BASE_H + 25; }
   spawnEnemy(type, x, y, 1);
-  spawned += 1;
-  remaining -= 1;
+  spawned += 1; remaining -= 1;
 }
 
-// Tougher enemies: more HP, faster, bigger
 function spawnEnemy(type, x, y, scale) {
-  const hpBonus = Math.floor((wave - 1) / 2);
+  const hpBonus = Math.floor((wave - 1) / 3);
   let hp, speed, r, color, timer;
-
   switch (type) {
-    case "charger":
-      hp = 4 + hpBonus; speed = Math.min(150, 60 + wave * 8); r = 20; color = "#fb7185"; timer = random(1, 2); break;
-    case "spitter":
-      hp = 3 + hpBonus; speed = Math.min(130, 50 + wave * 6); r = 17; color = "#c084fc"; timer = 1.2; break;
-    case "bomber":
-      hp = 4 + hpBonus; speed = Math.min(120, 48 + wave * 6); r = 18; color = "#3b82f6"; timer = random(.8, 1.6); break;
-    case "creeper":
-      hp = 2 + hpBonus; speed = Math.min(110, 42 + wave * 5); r = 15; color = "#eab308"; timer = 0; break;
-    case "leaper":
-      hp = 3 + hpBonus; speed = Math.min(140, 55 + wave * 6); r = 16; color = "#f97316"; timer = random(.6, 1.4); break;
-    case "glutton":
-      hp = 5 + hpBonus; speed = Math.min(110, 40 + wave * 5); r = 19; color = "#4ade80"; timer = random(1.5, 3); break;
-    default: // walker
-      hp = 2 + hpBonus; speed = Math.min(150, 58 + wave * 8); r = 16; color = "#86efac"; timer = random(1, 2);
+    case "charger": hp = 3 + hpBonus; speed = Math.min(130, 55 + wave * 6); r = 18; color = "#fb7185"; timer = random(1.5, 2.5); break;
+    case "spitter": hp = 2 + hpBonus; speed = Math.min(110, 45 + wave * 5); r = 15; color = "#c084fc"; timer = 1.5; break;
+    case "bomber":  hp = 3 + hpBonus; speed = Math.min(100, 42 + wave * 5); r = 16; color = "#3b82f6"; timer = random(1, 2); break;
+    case "creeper": hp = 3 + hpBonus; speed = Math.min(90, 38 + wave * 4); r = 14; color = "#eab308"; timer = 0; break;
+    case "leaper":  hp = 4 + hpBonus; speed = Math.min(120, 48 + wave * 5); r = 15; color = "#f97316"; timer = random(.8, 1.8); break;
+    case "glutton": hp = 4 + hpBonus; speed = Math.min(90, 35 + wave * 4); r = 17; color = "#4ade80"; timer = random(2, 4); break;
+    default:        hp = 2 + hpBonus; speed = Math.min(140, 50 + wave * 7); r = 15; color = "#86efac"; timer = random(1.5, 2.5);
   }
-
   hp = Math.max(1, Math.round(hp * scale));
   r = Math.max(10, Math.round(r * scale));
-  speed = speed * (scale < 1 ? 1.15 : 1);
-
+  speed = speed * (scale < 1 ? 1.1 : 1);
   enemies.push({
     x, y, type, r, hp, maxHp: hp, speed, timer, phase: "chase",
     aimX: 0, aimY: 1, color,
-    jumpCooldown: 0, jumpDirX: 0, jumpDirY: 0,
-    explodeTimer: 0, exploded: false,
-    stealthAlpha: 1,
-    eatCooldown: 0
+    jumpCooldown: 0, jumpDirX: 0, jumpDirY: 0, jumping: false,
+    explodeTimer: 0, exploded: false, stealthAlpha: 1, eatCooldown: 0,
+    hitFlash: 0,
   });
 }
 
+// ---------- Shooting ----------
 function shoot() {
-  let target = null;
-  let nearest = RANGE;
-  for (const enemy of enemies) {
-    if (enemy.hp <= 0) continue;
-    const distance = Math.hypot(enemy.x - player.x, enemy.y - player.y);
-    if (distance <= nearest) { target = enemy; nearest = distance; }
+  let target = null, nearest = RANGE;
+  for (const e of enemies) {
+    if (e.hp <= 0) continue;
+    if (e.type === "creeper" && e.stealthAlpha < 0.65) continue;
+    const d = Math.hypot(e.x - player.x, e.y - player.y);
+    if (d <= nearest) { target = e; nearest = d; }
   }
   if (!target) return false;
   const angle = Math.atan2(target.y - player.y, target.x - player.x);
@@ -334,101 +606,89 @@ function shoot() {
     x: player.x, y: player.y,
     vx: Math.cos(angle) * BULLET_SPEED,
     vy: Math.sin(angle) * BULLET_SPEED,
-    distanceLeft: RANGE
+    distanceLeft: RANGE,
+    life: 1,
   });
+  // muzzle flash
+  for (let i = 0; i < 4; i++) {
+    const a = angle + random(-.4, .4);
+    particles.push({
+      x: player.x + Math.cos(angle) * 14, y: player.y + Math.sin(angle) * 14,
+      vx: Math.cos(a) * random(80, 180), vy: Math.sin(a) * random(80, 180),
+      life: .2, maxLife: .2, color: "#fef08a", size: random(2, 4)
+    });
+  }
   return true;
 }
 
+// ---------- Enemy AI ----------
 function updateEnemy(enemy, dt) {
   const dx = player.x - enemy.x;
   const dy = player.y - enemy.y;
-  const distance = Math.hypot(dx, dy) || 1;
-  const nx = dx / distance;
-  const ny = dy / distance;
+  const dist = Math.hypot(dx, dy) || 1;
+  const nx = dx / dist, ny = dy / dist;
 
   enemy.timer -= dt;
   if (enemy.jumpCooldown > 0) enemy.jumpCooldown -= dt;
   if (enemy.eatCooldown > 0) enemy.eatCooldown -= dt;
+  if (enemy.hitFlash > 0) enemy.hitFlash -= dt;
 
-  // --- Walker (now faster & more aggressive) ---
   if (enemy.type === "walker") {
-    const boost = distance < 200 ? 1.3 : 1;
+    const boost = dist < 200 ? 1.2 : 1;
     enemy.x += nx * enemy.speed * boost * dt;
     enemy.y += ny * enemy.speed * boost * dt;
     return;
   }
-
-  // --- Spitter (hangs closer, shoots faster) ---
   if (enemy.type === "spitter") {
     let dir = 0;
-    if (distance > 190) dir = 1;
-    else if (distance < 150) dir = -1;
-    enemy.x += nx * enemy.speed * 1.1 * dir * dt;
-    enemy.y += ny * enemy.speed * 1.1 * dir * dt;
-    enemy.x = Math.max(18, Math.min(W - 18, enemy.x));
-    enemy.y = Math.max(18, Math.min(H - 18, enemy.y));
+    if (dist > 190) dir = 1; else if (dist < 150) dir = -1;
+    enemy.x += nx * enemy.speed * dir * dt;
+    enemy.y += ny * enemy.speed * dir * dt;
+    enemy.x = clamp(enemy.x, 18, BASE_W - 18);
+    enemy.y = clamp(enemy.y, 18, BASE_H - 18);
     if (enemy.timer <= 0) {
-      const speed = Math.min(280, 180 + wave * 6);
-      // 3-shot burst for more pressure
+      const spd = Math.min(260, 160 + wave * 5);
       for (let i = -1; i <= 1; i++) {
-        const angle = Math.atan2(dy, dx) + i * 0.18;
-        hostile.push({
-          x: enemy.x, y: enemy.y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          life: 6, r: 8
-        });
+        const a = Math.atan2(dy, dx) + i * 0.2;
+        hostile.push({ x: enemy.x, y: enemy.y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, life: 6, r: 8 });
       }
-      enemy.timer = Math.max(.8, 1.8 - wave * .08);
+      enemy.timer = Math.max(1.0, 2.2 - wave * .08);
     }
     return;
   }
-
-  // --- Charger (faster rushes) ---
   if (enemy.type === "charger") {
-    if (enemy.phase === "warn") {
-      if (enemy.timer <= 0) { enemy.phase = "rush"; enemy.timer = .7; }
-    } else if (enemy.phase === "rush") {
-      enemy.x += enemy.aimX * 480 * dt;
-      enemy.y += enemy.aimY * 480 * dt;
-      enemy.x = Math.max(18, Math.min(W - 18, enemy.x));
-      enemy.y = Math.max(18, Math.min(H - 18, enemy.y));
-      if (enemy.timer <= 0) { enemy.phase = "recover"; enemy.timer = .6; }
-    } else if (enemy.phase === "recover") {
-      if (enemy.timer <= 0) { enemy.phase = "chase"; enemy.timer = 1.2; }
-    } else {
-      enemy.x += nx * enemy.speed * 1.1 * dt;
-      enemy.y += ny * enemy.speed * 1.1 * dt;
-      if (enemy.timer <= 0 && distance < 380) {
-        enemy.phase = "warn"; enemy.timer = .7;
-        enemy.aimX = nx; enemy.aimY = ny;
-      }
+    if (enemy.phase === "warn") { if (enemy.timer <= 0) { enemy.phase = "rush"; enemy.timer = .6; } }
+    else if (enemy.phase === "rush") {
+      enemy.x += enemy.aimX * 420 * dt;
+      enemy.y += enemy.aimY * 420 * dt;
+      enemy.x = clamp(enemy.x, 18, BASE_W - 18);
+      enemy.y = clamp(enemy.y, 18, BASE_H - 18);
+      if (enemy.timer <= 0) { enemy.phase = "recover"; enemy.timer = .7; }
+    } else if (enemy.phase === "recover") { if (enemy.timer <= 0) { enemy.phase = "chase"; enemy.timer = 1.5; } }
+    else {
+      enemy.x += nx * enemy.speed * dt;
+      enemy.y += ny * enemy.speed * dt;
+      if (enemy.timer <= 0 && dist < 350) { enemy.phase = "warn"; enemy.timer = .8; enemy.aimX = nx; enemy.aimY = ny; }
     }
     return;
   }
-
-  // --- Bomber (bigger blast, faster fuse) ---
   if (enemy.type === "bomber") {
-    enemy.x += nx * enemy.speed * 1.1 * dt;
-    enemy.y += ny * enemy.speed * 1.1 * dt;
-    if (distance < 110 && enemy.explodeTimer === 0) {
-      enemy.explodeTimer = .9;
-    }
+    enemy.x += nx * enemy.speed * dt;
+    enemy.y += ny * enemy.speed * dt;
+    if (dist < 100 && enemy.explodeTimer === 0) enemy.explodeTimer = 1.1;
     if (enemy.explodeTimer > 0) {
       enemy.explodeTimer -= dt;
       enemy.x -= nx * enemy.speed * .3 * dt;
       enemy.y -= ny * enemy.speed * .3 * dt;
       if (enemy.explodeTimer <= 0 && !enemy.exploded) {
         enemy.exploded = true;
-        const blastRadius = 95;
-        if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < blastRadius + player.r) {
-          hurt();
-        }
+        const blastRadius = 85;
+        addShake(8);
+        if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < blastRadius + player.r) hurt();
         for (const other of enemies) {
           if (other === enemy || other.hp <= 0) continue;
           if (Math.hypot(other.x - enemy.x, other.y - enemy.y) < blastRadius) {
-            other.hp -= 2;
-            burst(other.x, other.y, "#f97316", 6);
+            other.hp -= 2; burst(other.x, other.y, "#f97316", 6);
           }
         }
         burst(enemy.x, enemy.y, "#3b82f6", 40);
@@ -438,111 +698,106 @@ function updateEnemy(enemy, dt) {
     }
     return;
   }
-
-  // --- Creeper (faster, tougher, more visible cycling) ---
   if (enemy.type === "creeper") {
-    enemy.stealthAlpha = 0.35 + Math.abs(Math.sin(elapsed * 5 + enemy.x)) * 0.65;
-    const speedMult = enemy.stealthAlpha < 0.6 ? 2.0 : 1.1;
-    enemy.x += nx * enemy.speed * speedMult * dt;
-    enemy.y += ny * enemy.speed * speedMult * dt;
-    return;
-  }
-
-  // --- Leaper (faster windup, harder jumps) ---
-  if (enemy.type === "leaper") {
-    if (enemy.jumpCooldown <= 0 && distance < 240 && distance > 30) {
-      enemy.jumpDirX = nx;
-      enemy.jumpDirY = ny;
-      enemy.jumpCooldown = 1.8;
-      enemy.timer = 0.28;
-    }
-    if (enemy.jumpCooldown > 0 && enemy.timer > 0) {
-      enemy.timer -= dt;
-      if (enemy.timer <= 0) {
-        enemy.x += enemy.jumpDirX * 420 * dt;
-        enemy.y += enemy.jumpDirY * 420 * dt;
-      }
+    enemy.stealthAlpha = 0.25 + Math.abs(Math.sin(elapsed * 5 + enemy.x)) * 0.75;
+    const faded = enemy.stealthAlpha < 0.65;
+    const speedMult = faded ? 2.3 : 1.0;
+    if (faded && dist < 120 && dist > 25) {
+      enemy.x += nx * enemy.speed * speedMult * 1.6 * dt;
+      enemy.y += ny * enemy.speed * speedMult * 1.6 * dt;
     } else {
-      enemy.x += nx * enemy.speed * 0.6 * dt;
-      enemy.y += ny * enemy.speed * 0.6 * dt;
+      enemy.x += nx * enemy.speed * speedMult * dt;
+      enemy.y += ny * enemy.speed * speedMult * dt;
     }
-    enemy.x = Math.max(18, Math.min(W - 18, enemy.x));
-    enemy.y = Math.max(18, Math.min(H - 18, enemy.y));
     return;
   }
-
-  // --- Glutton (much more aggressive; hunts, eats, splits) ---
+  if (enemy.type === "leaper") {
+    if (enemy.jumpCooldown <= 0 && dist < 300 && dist > 25) {
+      enemy.jumpDirX = nx; enemy.jumpDirY = ny;
+      enemy.jumpCooldown = 1.4;
+      enemy.timer = 0.35;
+      enemy.jumping = true;
+    }
+    if (enemy.jumping && enemy.timer > 0) {
+      enemy.timer -= dt;
+      enemy.x += enemy.jumpDirX * 520 * dt;
+      enemy.y += enemy.jumpDirY * 520 * dt;
+      if (enemy.timer <= 0) enemy.jumping = false;
+    } else {
+      enemy.x += nx * enemy.speed * 0.8 * dt;
+      enemy.y += ny * enemy.speed * 0.8 * dt;
+    }
+    enemy.x = clamp(enemy.x, 18, BASE_W - 18);
+    enemy.y = clamp(enemy.y, 18, BASE_H - 18);
+    return;
+  }
   if (enemy.type === "glutton") {
-    let target = null;
-    let nearest = Infinity;
+    let target = null, nearest = Infinity;
     for (const other of enemies) {
-      if (other === enemy || other.hp <= 0) continue;
-      if (other.type === "glutton") continue;
+      if (other === enemy || other.hp <= 0 || other.type === "glutton") continue;
       const d = Math.hypot(other.x - enemy.x, other.y - enemy.y);
       if (d < nearest) { nearest = d; target = other; }
     }
-
     if (target) {
-      const tx = target.x - enemy.x;
-      const ty = target.y - enemy.y;
+      const tx = target.x - enemy.x, ty = target.y - enemy.y;
       const td = Math.hypot(tx, ty) || 1;
-      // Very fast pursuit
-      enemy.x += (tx / td) * enemy.speed * 2.0 * dt;
-      enemy.y += (ty / td) * enemy.speed * 2.0 * dt;
-
+      enemy.x += (tx / td) * enemy.speed * 1.6 * dt;
+      enemy.y += (ty / td) * enemy.speed * 1.6 * dt;
       if (nearest < enemy.r + target.r + 4 && enemy.eatCooldown <= 0) {
         target.hp = 0;
         enemy.hp = Math.min(enemy.maxHp + 2, enemy.hp + 2);
-        enemy.r = Math.min(26, enemy.r + 2);
-        enemy.eatCooldown = 0.7;
+        enemy.r = Math.min(24, enemy.r + 2);
+        enemy.eatCooldown = 1.0;
         burst(target.x, target.y, "#4ade80", 25);
-
-        // Split into TWO stronger children
-        const childScale = 0.75;
+        const childScale = 0.7;
         const baseHp = Math.max(2, Math.round(enemy.maxHp * childScale));
         for (let i = 0; i < 2; i++) {
-          const angle = (Math.PI * 2 / 2) * i + random(0, Math.PI * 2);
-          const cx = enemy.x + Math.cos(angle) * 22;
-          const cy = enemy.y + Math.sin(angle) * 22;
+          const a = (Math.PI * 2 / 2) * i + random(0, Math.PI * 2);
+          const cx = enemy.x + Math.cos(a) * 22;
+          const cy = enemy.y + Math.sin(a) * 22;
           enemies.push({
-            x: cx, y: cy,
-            type: "glutton",
-            r: Math.max(12, Math.round(enemy.r * childScale)),
-            hp: baseHp,
-            maxHp: baseHp,
-            speed: enemy.speed * 1.3,
-            timer: random(1, 2),
-            phase: "chase",
-            aimX: 0, aimY: 1,
-            color: "#4ade80",
-            jumpCooldown: 0, jumpDirX: 0, jumpDirY: 0,
-            explodeTimer: 0, exploded: false,
-            stealthAlpha: 1,
-            eatCooldown: 1.0
+            x: cx, y: cy, type: "glutton",
+            r: Math.max(11, Math.round(enemy.r * childScale)),
+            hp: baseHp, maxHp: baseHp,
+            speed: enemy.speed * 1.05,
+            timer: random(1, 2), phase: "chase",
+            aimX: 0, aimY: 1, color: "#4ade80",
+            jumpCooldown: 0, jumpDirX: 0, jumpDirY: 0, jumping: false,
+            explodeTimer: 0, exploded: false, stealthAlpha: 1, eatCooldown: 1.2, hitFlash: 0,
           });
         }
         enemy.hp = 0;
         burst(enemy.x, enemy.y, "#22c55e", 35);
       }
     } else {
-      // No prey: chase player aggressively
-      enemy.x += nx * enemy.speed * 0.9 * dt;
-      enemy.y += ny * enemy.speed * 0.9 * dt;
+      enemy.x += nx * enemy.speed * 0.8 * dt;
+      enemy.y += ny * enemy.speed * 0.8 * dt;
     }
     return;
   }
 }
 
+// ---------- Damage ----------
 function hurt() {
   if (mode !== "playing" || invulnerability > 0) return;
   player.hp -= 1;
-  invulnerability = 1.1;
-  burst(player.x, player.y, "#fb7185", 22);
+  player.hurtFlash = .4;
+  invulnerability = 1.3;
+  addShake(10);
+  burst(player.x, player.y, "#fb7185", 26);
   if (player.hp <= 0) gameOver();
 }
 
+// ---------- Update ----------
 function update(dt) {
   if (mode === "paused") return;
+
+  // Screen shake decay
+  if (shake > 0) {
+    shake = Math.max(0, shake - dt * 40);
+    shakeX = (Math.random() - .5) * shake;
+    shakeY = (Math.random() - .5) * shake;
+  } else { shakeX = 0; shakeY = 0; }
 
   for (const p of particles) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; }
   particles = particles.filter(p => p.life > 0);
@@ -550,101 +805,96 @@ function update(dt) {
   for (const t of trails) t.life -= dt;
   trails = trails.filter(t => t.life > 0);
 
+  for (const f of floaters) { f.life -= dt; f.y += f.vy * dt; f.vy += 60 * dt; }
+  floaters = floaters.filter(f => f.life > 0);
+
   if (mode !== "playing") return;
 
   elapsed += dt;
   invulnerability = Math.max(0, invulnerability - dt);
   player.dashCooldown = Math.max(0, player.dashCooldown - dt);
+  if (player.hurtFlash > 0) player.hurtFlash -= dt;
 
   if (player.dashTime > 0) {
     const step = Math.min(dt, player.dashTime);
-    player.x += player.dashX * 780 * step;
-    player.y += player.dashY * 780 * step;
+    player.x += player.dashX * 820 * step;
+    player.y += player.dashY * 820 * step;
     player.dashTime = Math.max(0, player.dashTime - dt);
-    trails.push({ x: player.x, y: player.y, life: .2 });
+    trails.push({ x: player.x, y: player.y, life: .22 });
   } else {
-    const direction = movement();
+    const dir = movement();
     let step = player.speed * dt;
-    if (moveTarget && !keys.size) {
+    if (moveTarget && !keys.size && joyVector.x === 0 && joyVector.y === 0) {
       step = Math.min(step, Math.hypot(moveTarget.x - player.x, moveTarget.y - player.y));
     }
-    player.x += direction.x * step;
-    player.y += direction.y * step;
-    if (direction.x !== 0 || direction.y !== 0) {
-      player.dirX = direction.x;
-      player.dirY = direction.y;
-    }
+    player.x += dir.x * step;
+    player.y += dir.y * step;
+    if (dir.x || dir.y) { player.dirX = dir.x; player.dirY = dir.y; }
   }
-
-  player.x = Math.max(15, Math.min(W - 15, player.x));
-  player.y = Math.max(15, Math.min(H - 15, player.y));
+  player.x = clamp(player.x, 15, BASE_W - 15);
+  player.y = clamp(player.y, 15, BASE_H - 15);
 
   spawnClock -= dt;
   if (remaining > 0 && spawnClock <= 0) {
     spawn();
-    spawnClock = Math.max(.3, .95 - wave * .045);
+    spawnClock = Math.max(.4, 1.1 - wave * .04);
   }
 
-  for (const enemy of enemies) updateEnemy(enemy, dt);
+  for (const e of enemies) updateEnemy(e, dt);
 
   shotClock = Math.max(0, shotClock - dt);
   if (shotClock === 0 && shoot()) shotClock = player.fireRate;
 
-  for (const bullet of bullets) {
-    if (bullet.distanceLeft <= 0) continue;
-    const step = Math.min(BULLET_SPEED * dt, bullet.distanceLeft);
-    bullet.x += bullet.vx / BULLET_SPEED * step;
-    bullet.y += bullet.vy / BULLET_SPEED * step;
-    bullet.distanceLeft -= step;
-
-    for (const enemy of enemies) {
-      if (enemy.hp <= 0) continue;
-      if (Math.hypot(bullet.x - enemy.x, bullet.y - enemy.y) < enemy.r + 4) {
-        bullet.distanceLeft = 0;
-        enemy.hp -= player.damage;
-        burst(bullet.x, bullet.y, "#facc15", 4);
-        if (enemy.hp <= 0) {
-          let points = 15;
-          if (enemy.type === "spitter") points = 30;
-          else if (enemy.type === "charger") points = 30;
-          else if (enemy.type === "bomber") points = 35;
-          else if (enemy.type === "creeper") points = 40;
-          else if (enemy.type === "leaper") points = 35;
-          else if (enemy.type === "glutton") points = 50;
-          score += points;
-          burst(enemy.x, enemy.y, enemy.color);
+  for (const b of bullets) {
+    if (b.distanceLeft <= 0) continue;
+    const step = Math.min(BULLET_SPEED * dt, b.distanceLeft);
+    b.x += b.vx / BULLET_SPEED * step;
+    b.y += b.vy / BULLET_SPEED * step;
+    b.distanceLeft -= step;
+    for (const e of enemies) {
+      if (e.hp <= 0) continue;
+      if (Math.hypot(b.x - e.x, b.y - e.y) < e.r + 5) {
+        b.distanceLeft = 0;
+        e.hp -= player.damage;
+        e.hitFlash = .12;
+        burst(b.x, b.y, "#facc15", 5);
+        if (e.hp <= 0) {
+          let pts = 15;
+          if (e.type === "spitter" || e.type === "charger") pts = 30;
+          else if (e.type === "bomber") pts = 35;
+          else if (e.type === "creeper") pts = 40;
+          else if (e.type === "leaper") pts = 35;
+          else if (e.type === "glutton") pts = 50;
+          score += pts;
+          addFloater(e.x, e.y - e.r - 6, "+" + pts, "#fde68a");
+          burst(e.x, e.y, e.color, 20);
+          addShake(2);
         }
         break;
       }
     }
   }
 
-  enemies = enemies.filter(enemy => enemy.hp > 0);
-  bullets = bullets.filter(bullet => bullet.distanceLeft > 0);
+  enemies = enemies.filter(e => e.hp > 0);
+  bullets = bullets.filter(b => b.distanceLeft > 0);
 
   for (const orb of hostile) {
-    orb.x += orb.vx * dt;
-    orb.y += orb.vy * dt;
-    orb.life -= dt;
+    orb.x += orb.vx * dt; orb.y += orb.vy * dt; orb.life -= dt;
     if (Math.hypot(orb.x - player.x, orb.y - player.y) < orb.r + player.r) {
-      orb.life = 0;
-      hurt();
+      orb.life = 0; hurt();
     }
   }
-  hostile = hostile.filter(orb => orb.life > 0 && orb.x > -20 && orb.x < W + 20 && orb.y > -20 && orb.y < H + 20);
+  hostile = hostile.filter(o => o.life > 0 && o.x > -20 && o.x < BASE_W + 20 && o.y > -20 && o.y < BASE_H + 20);
 
-  for (const enemy of enemies) {
+  for (const e of enemies) {
     if (mode !== "playing") break;
-    if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.r + player.r) {
-      hurt();
-    }
+    if (Math.hypot(e.x - player.x, e.y - player.y) < e.r + player.r) hurt();
   }
 
-  if (mode === "playing" && remaining === 0 && enemies.length === 0) {
-    upgrade();
-  }
+  if (mode === "playing" && remaining === 0 && enemies.length === 0) upgrade();
 }
 
+// ---------- Drawing ----------
 function circle(x, y, radius, color) {
   ctx.fillStyle = color;
   ctx.beginPath();
@@ -652,273 +902,350 @@ function circle(x, y, radius, color) {
   ctx.fill();
 }
 
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-  ctx.strokeStyle = "#1b2c38";
+function drawBackground() {
+  // Ambient glow
+  const g = ctx.createRadialGradient(BASE_W / 2, BASE_H / 2, 40, BASE_W / 2, BASE_H / 2, BASE_W * .8);
+  g.addColorStop(0, "#0f2233");
+  g.addColorStop(1, "#05080d");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, BASE_W, BASE_H);
+
+  // Moving grid
+  const offset = (elapsed * 12) % 40;
+  ctx.strokeStyle = "rgba(56,189,248,.045)";
   ctx.lineWidth = 1;
-  for (let x = 0; x <= W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-  for (let y = 0; y <= H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  ctx.beginPath();
+  for (let x = -offset; x <= BASE_W; x += 40) { ctx.moveTo(x, 0); ctx.lineTo(x, BASE_H); }
+  for (let y = -offset; y <= BASE_H; y += 40) { ctx.moveTo(0, y); ctx.lineTo(BASE_W, y); }
+  ctx.stroke();
 
-  if (!player) return;
+  // Vignette
+  const vg = ctx.createRadialGradient(BASE_W / 2, BASE_H / 2, BASE_H * .35, BASE_W / 2, BASE_H / 2, BASE_H * .8);
+  vg.addColorStop(0, "rgba(0,0,0,0)");
+  vg.addColorStop(1, "rgba(0,0,0,.6)");
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, BASE_W, BASE_H);
+}
 
-  // Weapon range circle
+function draw() {
   ctx.save();
-  ctx.strokeStyle = "rgba(56,189,248,.17)";
-  ctx.setLineDash([5, 8]);
+  ctx.translate(shakeX, shakeY);
+  ctx.clearRect(-20, -20, BASE_W + 40, BASE_H + 40);
+  drawBackground();
+
+  if (!player) { ctx.restore(); return; }
+
+  // Aim range
+  ctx.save();
+  ctx.strokeStyle = "rgba(56,189,248,.14)";
+  ctx.setLineDash([6, 10]);
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.arc(player.x, player.y, RANGE, 0, Math.PI * 2);
   ctx.stroke();
   ctx.restore();
 
-  // Telegraphs
-  for (const enemy of enemies) {
-    if (enemy.type === "charger" && enemy.phase === "warn") {
+  // Enemy telegraphs
+  for (const e of enemies) {
+    if (e.type === "charger" && e.phase === "warn") {
       ctx.save();
-      ctx.strokeStyle = "#fb7185";
+      ctx.strokeStyle = "rgba(251,113,133,.85)";
       ctx.lineWidth = 3;
       ctx.setLineDash([10, 7]);
+      ctx.shadowColor = "#fb7185"; ctx.shadowBlur = 12;
       ctx.beginPath();
-      ctx.moveTo(enemy.x, enemy.y);
-      ctx.lineTo(enemy.x + enemy.aimX * 255, enemy.y + enemy.aimY * 255);
+      ctx.moveTo(e.x, e.y);
+      ctx.lineTo(e.x + e.aimX * 255, e.y + e.aimY * 255);
       ctx.stroke();
       ctx.restore();
     }
-    if (enemy.type === "bomber" && enemy.explodeTimer > 0) {
+    if (e.type === "bomber" && e.explodeTimer > 0) {
       ctx.save();
       ctx.strokeStyle = "#f97316";
       ctx.lineWidth = 3;
+      ctx.shadowColor = "#f97316"; ctx.shadowBlur = 16;
       ctx.beginPath();
-      ctx.arc(enemy.x, enemy.y, enemy.r + 6 + Math.sin(elapsed * 20) * 4, 0, Math.PI * 2);
+      ctx.arc(e.x, e.y, e.r + 6 + Math.sin(elapsed * 20) * 4, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
-    if (enemy.type === "leaper" && enemy.timer > 0 && enemy.jumpCooldown > 1.8) {
+    if (e.type === "leaper" && e.jumping) {
       ctx.save();
-      ctx.strokeStyle = "#f97316";
+      ctx.strokeStyle = "rgba(249,115,22,.8)";
       ctx.lineWidth = 2;
       ctx.setLineDash([4, 6]);
       ctx.beginPath();
-      ctx.moveTo(enemy.x, enemy.y);
-      ctx.lineTo(enemy.x + enemy.jumpDirX * 60, enemy.y + enemy.jumpDirY * 60);
-      ctx.stroke();
-      ctx.restore();
-    }
-    if (enemy.type === "glutton") {
-      ctx.save();
-      ctx.strokeStyle = "rgba(74,222,128,.6)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(enemy.x, enemy.y, enemy.r + 4 + Math.sin(elapsed * 8) * 2, 0, Math.PI * 2);
+      ctx.moveTo(e.x, e.y);
+      ctx.lineTo(e.x + e.jumpDirX * 60, e.y + e.jumpDirY * 60);
       ctx.stroke();
       ctx.restore();
     }
   }
 
-  // Trails
+  // Dash trails
   for (const t of trails) {
-    ctx.globalAlpha = Math.max(0, t.life / .2) * .4;
+    ctx.globalAlpha = Math.max(0, t.life / .22) * .5;
+    ctx.shadowColor = "#67e8f9"; ctx.shadowBlur = 12;
     circle(t.x, t.y, player.r, "#67e8f9");
   }
   ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
 
   // Enemies
-  for (const enemy of enemies) {
+  for (const e of enemies) {
     let alpha = 1;
-    if (enemy.type === "creeper") alpha = enemy.stealthAlpha;
+    if (e.type === "creeper") alpha = e.stealthAlpha;
     ctx.globalAlpha = alpha;
 
-    circle(enemy.x, enemy.y, enemy.r, enemy.color);
+    // Glow
+    ctx.shadowColor = e.color;
+    ctx.shadowBlur = e.hitFlash > 0 ? 24 : 12;
+    circle(e.x, e.y, e.r, e.hitFlash > 0 ? "#ffffff" : e.color);
+    ctx.shadowBlur = 0;
 
-    // Eyes
-    circle(enemy.x - 5, enemy.y - 3, 2.5, "#101b24");
-    circle(enemy.x + 5, enemy.y - 3, 2.5, "#101b24");
+    // Details
+    ctx.globalAlpha = alpha;
+    circle(e.x - e.r * .3, e.y - e.r * .2, e.r * .17, "#0b1220");
+    circle(e.x + e.r * .3, e.y - e.r * .2, e.r * .17, "#0b1220");
 
-    if (enemy.type === "spitter") {
-      circle(enemy.x, enemy.y + 6, 4, "#581c87");
-    }
-    if (enemy.type === "charger") {
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2;
+    if (e.type === "spitter") circle(e.x, e.y + e.r * .35, e.r * .26, "#581c87");
+    if (e.type === "charger") {
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(enemy.x - 6, enemy.y + 5);
-      ctx.lineTo(enemy.x, enemy.y + 10);
-      ctx.lineTo(enemy.x + 6, enemy.y + 5);
+      ctx.moveTo(e.x - e.r * .35, e.y + e.r * .3);
+      ctx.lineTo(e.x, e.y + e.r * .6);
+      ctx.lineTo(e.x + e.r * .35, e.y + e.r * .3);
       ctx.stroke();
     }
-    if (enemy.type === "bomber") {
-      if (enemy.explodeTimer > 0) {
-        circle(enemy.x, enemy.y - enemy.r - 4, 4 + Math.sin(elapsed * 30) * 3, "#fbbf24");
-      }
+    if (e.type === "bomber") {
+      if (e.explodeTimer > 0) circle(e.x, e.y - e.r - 4, 4 + Math.sin(elapsed * 30) * 3, "#fbbf24");
       ctx.fillStyle = "#1e3a5f";
-      ctx.beginPath();
-      ctx.arc(enemy.x, enemy.y, enemy.r * .5, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x, e.y, e.r * .5, 0, Math.PI * 2); ctx.fill();
     }
-    if (enemy.type === "creeper") {
-      ctx.strokeStyle = "#78350f";
-      ctx.lineWidth = 2;
+    if (e.type === "creeper") {
+      ctx.strokeStyle = "#78350f"; ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(enemy.x - 5, enemy.y + 6);
-      ctx.lineTo(enemy.x - 1, enemy.y + 3);
-      ctx.lineTo(enemy.x + 3, enemy.y + 7);
-      ctx.lineTo(enemy.x + 6, enemy.y + 4);
+      ctx.moveTo(e.x - e.r * .35, e.y + e.r * .4);
+      ctx.lineTo(e.x - e.r * .07, e.y + e.r * .2);
+      ctx.lineTo(e.x + e.r * .2, e.y + e.r * .45);
+      ctx.lineTo(e.x + e.r * .4, e.y + e.r * .25);
       ctx.stroke();
     }
-    if (enemy.type === "leaper") {
-      ctx.strokeStyle = "#fde68a";
-      ctx.lineWidth = 2;
+    if (e.type === "leaper") {
+      ctx.strokeStyle = "#fde68a"; ctx.lineWidth = 2;
       for (let i = -1; i <= 1; i += 2) {
         ctx.beginPath();
-        ctx.moveTo(enemy.x + i * 8, enemy.y + 8);
-        ctx.lineTo(enemy.x + i * 10, enemy.y + 14);
+        ctx.moveTo(e.x + i * e.r * .5, e.y + e.r * .5);
+        ctx.lineTo(e.x + i * e.r * .65, e.y + e.r * .9);
         ctx.stroke();
       }
     }
-    if (enemy.type === "glutton") {
+    if (e.type === "glutton") {
       ctx.fillStyle = "#14532d";
-      ctx.beginPath();
-      ctx.arc(enemy.x, enemy.y + 4, enemy.r * .55, 0, Math.PI);
-      ctx.fill();
-      ctx.fillStyle = "#ffffff";
-      for (let i = -2; i <= 2; i++) {
-        ctx.fillRect(enemy.x + i * 4 - 1, enemy.y + 3, 2, 4);
-      }
+      ctx.beginPath(); ctx.arc(e.x, e.y + e.r * .25, e.r * .55, 0, Math.PI); ctx.fill();
+      ctx.fillStyle = "#fff";
+      for (let i = -2; i <= 2; i++) ctx.fillRect(e.x + i * e.r * .22 - 1, e.y + e.r * .18, 2, 4);
     }
 
-    // HP bar
-    ctx.fillStyle = "#334155";
-    ctx.fillRect(enemy.x - 15, enemy.y - enemy.r - 9, 30, 4);
-    ctx.fillStyle = enemy.color;
-    ctx.fillRect(enemy.x - 15, enemy.y - enemy.r - 9, 30 * Math.max(0, enemy.hp / enemy.maxHp), 4);
+    // HP bar (only if damaged)
+    if (e.hp < e.maxHp) {
+      ctx.globalAlpha = 1;
+      const bw = e.r * 2, bx = e.x - e.r, by = e.y - e.r - 9;
+      ctx.fillStyle = "rgba(0,0,0,.6)";
+      ctx.fillRect(bx - 1, by - 1, bw + 2, 5);
+      ctx.fillStyle = e.color;
+      ctx.fillRect(bx, by, bw * Math.max(0, e.hp / e.maxHp), 3);
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.globalAlpha = 1;
+
+  // Bullets
+  for (const b of bullets) {
+    ctx.shadowColor = "#fef08a"; ctx.shadowBlur = 16;
+    circle(b.x, b.y, 4, "#fef08a");
+    ctx.shadowBlur = 0;
+  }
+
+  // Hostile orbs
+  for (const o of hostile) {
+    ctx.shadowColor = "#e879f9"; ctx.shadowBlur = 14;
+    circle(o.x, o.y, o.r, "#e879f9");
+    ctx.shadowBlur = 0;
+  }
+
+  // Particles
+  for (const p of particles) {
+    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
+
+  // Player
+  if (mode !== "over") {
+    const flicker = invulnerability > 0 ? .55 + Math.abs(Math.sin(elapsed * 22)) * .45 : 1;
+    ctx.globalAlpha = flicker;
+
+    // Player glow
+    ctx.shadowColor = player.hurtFlash > 0 ? "#fb7185" : "#38bdf8";
+    ctx.shadowBlur = player.dashTime > 0 ? 40 : 24;
+    circle(player.x, player.y, player.r, player.dashTime > 0 ? "#ffffff" : (player.hurtFlash > 0 ? "#fecdd3" : "#38bdf8"));
+    ctx.shadowBlur = 0;
+
+    // Eyes
+    circle(player.x - 4, player.y - 3, 2.2, "#082f49");
+    circle(player.x + 4, player.y - 3, 2.2, "#082f49");
+
+    // Aim indicator
+    ctx.strokeStyle = "#a5f3fc";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(player.x + player.dirX * 17, player.y + player.dirY * 17);
+    ctx.lineTo(player.x + player.dirX * 28, player.y + player.dirY * 28);
+    ctx.stroke();
+    ctx.lineCap = "butt";
 
     ctx.globalAlpha = 1;
   }
 
-  for (const bullet of bullets) circle(bullet.x, bullet.y, 4, "#fef08a");
-
-  for (const orb of hostile) {
-    circle(orb.x, orb.y, orb.r + 3, "#581c87");
-    circle(orb.x, orb.y, orb.r, "#e879f9");
+  // Floating score
+  ctx.textAlign = "center";
+  ctx.font = "900 16px 'Segoe UI', system-ui, sans-serif";
+  for (const f of floaters) {
+    ctx.globalAlpha = Math.min(1, f.life / .5);
+    ctx.fillStyle = f.color;
+    ctx.shadowColor = f.color; ctx.shadowBlur = 10;
+    ctx.fillText(f.text, f.x, f.y);
   }
-
-  for (const p of particles) {
-    ctx.globalAlpha = Math.max(0, p.life / .55);
-    ctx.fillStyle = p.color;
-    ctx.fillRect(p.x, p.y, 4, 4);
-  }
+  ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
 
-  if (mode !== "over") {
-    ctx.save();
-    ctx.globalAlpha = invulnerability > 0 ? .4 + Math.abs(Math.sin(elapsed * 20)) * .6 : 1;
-    ctx.shadowColor = "#38bdf8";
-    ctx.shadowBlur = 16;
-    circle(player.x, player.y, player.r, player.dashTime > 0 ? "#ffffff" : "#38bdf8");
-    ctx.shadowBlur = 0;
-    circle(player.x - 4, player.y - 3, 2, "#082f49");
-    circle(player.x + 4, player.y - 3, 2, "#082f49");
-    ctx.strokeStyle = "#a5f3fc";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(player.x + player.dirX * 17, player.y + player.dirY * 17);
-    ctx.lineTo(player.x + player.dirX * 26, player.y + player.dirY * 26);
-    ctx.stroke();
-    ctx.restore();
+  // "Enemies left" indicator
+  if (mode === "playing") {
+    ctx.fillStyle = "rgba(203,213,225,.7)";
+    ctx.font = "800 12px 'Segoe UI', system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText((remaining + enemies.length) + " LEFT", BASE_W / 2, 24);
   }
 
-  if (mode === "playing") {
-    ctx.fillStyle = "#cbd5e1";
-    ctx.font = "13px system-ui";
-    ctx.textAlign = "center";
-    ctx.fillText("Enemies left: " + (remaining + enemies.length), W / 2, 24);
-  }
+  ctx.restore();
 }
 
-function point(event) {
+// ---------- Input ----------
+function point(ev) {
   const rect = canvas.getBoundingClientRect();
   return {
-    x: (event.clientX - rect.left) * W / rect.width,
-    y: (event.clientY - rect.top) * H / rect.height
+    x: (ev.clientX - rect.left) * BASE_W / rect.width,
+    y: (ev.clientY - rect.top) * BASE_H / rect.height,
   };
 }
 
-canvas.addEventListener("pointerdown", event => {
-  if (mode !== "playing" || pointer !== null) return;
-  if (event.pointerType === "mouse" && event.button !== 0) return;
-  event.preventDefault();
-  pointer = event.pointerId;
-  moveTarget = point(event);
+canvas.addEventListener("pointerdown", ev => {
+  if (mode !== "playing" || pointer !== null || joyActive) return;
+  if (ev.pointerType === "mouse" && ev.button !== 0) return;
+  ev.preventDefault();
+  pointer = ev.pointerId;
+  moveTarget = point(ev);
   canvas.setPointerCapture(pointer);
 });
-
-canvas.addEventListener("pointermove", event => {
-  if (event.pointerId !== pointer) return;
-  event.preventDefault();
-  moveTarget = point(event);
+canvas.addEventListener("pointermove", ev => {
+  if (ev.pointerId !== pointer || joyActive) return;
+  ev.preventDefault();
+  moveTarget = point(ev);
 });
-
-function release(event) {
-  if (event.pointerId === pointer) {
-    pointer = null;
-    moveTarget = null;
-  }
+function release(ev) {
+  if (ev.pointerId === pointer) { pointer = null; moveTarget = null; }
 }
-
 canvas.addEventListener("pointerup", release);
 canvas.addEventListener("pointercancel", release);
 canvas.addEventListener("lostpointercapture", release);
-canvas.addEventListener("contextmenu", event => { event.preventDefault(); });
+canvas.addEventListener("contextmenu", e => e.preventDefault());
 
-$("dash").addEventListener("pointerdown", event => { event.preventDefault(); dash(); });
-$("dash").addEventListener("contextmenu", event => { event.preventDefault(); });
+// Joystick
+const joyEl = $("joystick");
+const joyKnob = $("joystickKnob");
+function updateJoystickKnob() {
+  if (!joyActive) { joyKnob.style.transform = "translate(-50%, -50%)"; return; }
+  const len = Math.hypot(joyVector.x, joyVector.y);
+  if (len === 0) { joyKnob.style.transform = "translate(-50%, -50%)"; return; }
+  const nx = joyVector.x / Math.max(len, 1) * joyMaxRadius;
+  const ny = joyVector.y / Math.max(len, 1) * joyMaxRadius;
+  joyKnob.style.transform = `translate(calc(-50% + ${nx}px), calc(-50% + ${ny}px))`;
+}
+function startJoy(e) {
+  if (mode !== "playing") return;
+  e.preventDefault();
+  joyActive = true; joyPointerId = e.pointerId;
+  joyEl.classList.add("active");
+  const rect = joyEl.getBoundingClientRect();
+  joyCenter.x = rect.left + rect.width / 2;
+  joyCenter.y = rect.top + rect.height / 2;
+  joyMaxRadius = rect.width / 2 - 22;
+  updateJoy(e);
+  joyEl.setPointerCapture(e.pointerId);
+}
+function updateJoy(e) {
+  if (!joyActive || e.pointerId !== joyPointerId) return;
+  e.preventDefault();
+  let dx = e.clientX - joyCenter.x, dy = e.clientY - joyCenter.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist > joyMaxRadius) { dx = dx / dist * joyMaxRadius; dy = dy / dist * joyMaxRadius; }
+  const nx = dx / joyMaxRadius, ny = dy / joyMaxRadius;
+  const mag = Math.hypot(nx, ny);
+  if (mag < 0.12) { joyVector.x = 0; joyVector.y = 0; }
+  else { joyVector.x = nx; joyVector.y = ny; }
+  updateJoystickKnob();
+}
+function endJoy(e) {
+  if (e.pointerId !== joyPointerId) return;
+  joyActive = false; joyPointerId = null;
+  joyVector.x = 0; joyVector.y = 0;
+  joyEl.classList.remove("active");
+  updateJoystickKnob();
+}
+joyEl.addEventListener("pointerdown", startJoy);
+joyEl.addEventListener("pointermove", updateJoy);
+joyEl.addEventListener("pointerup", endJoy);
+joyEl.addEventListener("pointercancel", endJoy);
+joyEl.addEventListener("lostpointercapture", endJoy);
+
+$("dash").addEventListener("pointerdown", e => { e.preventDefault(); dash(); });
 $("pause").onclick = pauseGame;
 
-window.addEventListener("keydown", event => {
-  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
-  if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "w", "a", "s", "d"].includes(key)) {
-    event.preventDefault();
-    if (mode === "playing") keys.add(key);
+window.addEventListener("keydown", e => {
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","w","a","s","d"].includes(k)) {
+    e.preventDefault();
+    if (mode === "playing") keys.add(k);
   }
-  if (event.code === "Space") {
-    event.preventDefault();
-    if (!event.repeat) dash();
-  }
-  if (event.code === "KeyP" && !event.repeat) pauseGame();
+  if (e.code === "Space") { e.preventDefault(); if (!e.repeat) dash(); }
+  if (e.code === "KeyP" && !e.repeat) pauseGame();
 });
-
-window.addEventListener("keyup", event => {
-  keys.delete(event.key.length === 1 ? event.key.toLowerCase() : event.key);
+window.addEventListener("keyup", e => {
+  keys.delete(e.key.length === 1 ? e.key.toLowerCase() : e.key);
 });
-
-window.addEventListener("blur", () => {
-  clearInput();
-  if (mode === "playing") pauseGame();
-});
-
+window.addEventListener("blur", () => { clearInput(); if (mode === "playing") pauseGame(); });
 document.addEventListener("visibilitychange", () => {
   if (document.hidden && mode === "playing") pauseGame();
 });
 
-showPanel(
-  "DASH & DODGE",
-  "Zombies are tougher and more aggressive now! Gluttons eat and split. " +
-  "Bombers explode, Creepers stealth, and Leapers pounce. Stay mobile!",
-  [["Start survival", reset]]
-);
+// ---------- Boot ----------
+resize();
+showPanel("DASH & DODGE", "Survive the horde. Use the joystick or drag to move, and dash to escape danger.", [["START", reset]]);
 
 let previous = performance.now();
-
 function frame(now) {
-  const elapsed = Math.min((now - previous) / 1000, .05);
+  const dt = Math.min((now - previous) / 1000, .05);
   previous = now;
-  const steps = Math.max(1, Math.ceil(elapsed / .008));
-  const dt = elapsed / steps;
-  for (let i = 0; i < steps; i++) update(dt);
+  const steps = Math.max(1, Math.ceil(dt / .008));
+  const sub = dt / steps;
+  for (let i = 0; i < steps; i++) update(sub);
   hud();
   draw();
   requestAnimationFrame(frame);
 }
-
 requestAnimationFrame(frame);
 </script>
 </body>
