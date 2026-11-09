@@ -20,13 +20,11 @@
     touch-action: none;
   }
 
-  /* Perfectly scales to fit the phone screen without cutting off */
   #game-frame {
     position: relative;
     width: 400px;
     height: 700px;
     max-width: 100vw;
-    max-height: 100vh;
     max-height: 100dvh;
     background: #0a0f14;
     overflow: hidden;
@@ -35,6 +33,7 @@
     border: 1px solid #1e293b;
   }
 
+  /* HUD Spacing adjusted */
   #hud {
     position: absolute;
     top: 0; left: 0; right: 0;
@@ -42,7 +41,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: 12px 24px; /* Increased side padding to clear the pause button */
     background: linear-gradient(180deg, rgba(5,8,13,.95) 0%, rgba(5,8,13,.6) 70%, transparent 100%);
     font-weight: 700;
     font-size: 13px;
@@ -55,7 +54,7 @@
   .pip { width: 12px; height: 12px; border-radius: 50%; background: #1e293b; border: 1.5px solid #334155; }
   .pip.full { background: radial-gradient(circle at 35% 35%, #fda4af, #e11d48); border-color: #fb7185; box-shadow: 0 0 8px rgba(244,63,94,.6); }
   #wave-block .hud-value { color: #fbbf24; }
-  #score-block .hud-value { color: #38bdf8; }
+  #score-block .hud-value { color: #38bdf8; padding-right: 10px; }
 
   #arena { position: absolute; inset: 0; }
   #game { display: block; width: 100%; height: 100%; touch-action: none; }
@@ -82,8 +81,9 @@
   }
   #choices button:active { transform: translateY(2px); box-shadow: 0 2px 0 #166534; }
 
+  /* ALIGNED CONTROLS */
   #dash {
-    position: absolute; bottom: 100px; right: 24px;
+    position: absolute; bottom: 90px; right: 24px;
     width: 76px; height: 76px; border-radius: 50%;
     border: 3px solid rgba(56,189,248,.4);
     background: radial-gradient(circle at 35% 35%, #67e8f9, #22d3ee);
@@ -94,16 +94,29 @@
   #dash:active { transform: translateY(4px); box-shadow: 0 4px 0 #0e7490; }
   #dash:disabled { background: #334155; color: #64748b; box-shadow: 0 8px 0 #0f172a; transform: translateY(4px); }
   
+  /* CUSTOM DRAWN PAUSE BUTTON */
   #pause {
-    position: absolute; top: 12px; right: 14px;
+    position: absolute; top: 12px; right: 12px;
     width: 36px; height: 36px; border-radius: 10px;
     background: rgba(51,65,85,.8); border: 1px solid #475569;
-    color: #cbd5e1; font-size: 16px; z-index: 25;
+    z-index: 25;
     display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  /* Two vertical bars for pause */
+  .pause-icon {
+    display: flex;
+    gap: 4px;
+  }
+  .pause-icon div {
+    width: 4px;
+    height: 14px;
+    background-color: #cbd5e1;
+    border-radius: 2px;
   }
 
   #joystick {
-    position: absolute; bottom: 100px; left: 24px;
+    position: absolute; bottom: 90px; left: 24px;
     width: 110px; height: 110px; border-radius: 50%;
     background: rgba(15,23,42,.6); border: 2px solid rgba(148,163,184,.2);
     z-index: 20; touch-action: none;
@@ -129,7 +142,15 @@
     <canvas id="game"></canvas>
     <div id="joystick"><div id="joystickKnob"></div></div>
     <button id="dash">DASH</button>
-    <button id="pause">⏸</button>
+    
+    <!-- NEW CUSTOM PAUSE BUTTON -->
+    <button id="pause">
+      <div class="pause-icon">
+        <div></div>
+        <div></div>
+      </div>
+    </button>
+    
     <div id="panel">
       <h1 id="heading"></h1>
       <p id="message"></p>
@@ -146,7 +167,7 @@ const ctx = canvas.getContext("2d");
 
 const W = 400;
 const H = 700;
-const PAD = 4; // Tiny invisible margin so they don't visually clip through the very edge
+const PAD = 4; // Invisible wall thickness
 let RANGE = 140; 
 const BULLET_SPEED = 520;
 const MAX_HP = 5;
@@ -407,7 +428,6 @@ function updateEnemy(e, dt) {
     } else { e.x+=nx*e.speed*.8*dt; e.y+=ny*e.speed*.8*dt; }
   }
 
-  // STRICT INVISIBLE WALLS
   e.x = clamp(e.x, PAD + e.r, W - PAD - e.r);
   e.y = clamp(e.y, PAD + e.r, H - PAD - e.r);
 }
@@ -438,7 +458,6 @@ function update(dt) {
     if(dir.x||dir.y){player.dirX=dir.x;player.dirY=dir.y;}
   }
   
-  // STRICT INVISIBLE WALLS
   player.x=clamp(player.x, PAD + player.r, W - PAD - player.r);
   player.y=clamp(player.y, PAD + player.r, H - PAD - player.r);
 
@@ -486,8 +505,6 @@ function draw() {
   ctx.translate(shakeX, shakeY);
   
   ctx.fillStyle = "#0a0e13"; ctx.fillRect(0,0,W,H);
-  
-  // Subtle grid pattern on the ground
   ctx.strokeStyle = "rgba(255,255,255,.02)"; ctx.lineWidth=1; ctx.beginPath();
   for(let i=0;i<30;i++){ctx.moveTo(random(0,W),random(0,H));ctx.lineTo(random(0,W),random(0,H));} ctx.stroke();
   
@@ -552,7 +569,7 @@ function draw() {
   ctx.textAlign="center";ctx.font="900 16px 'Segoe UI'";
   for(let f of floaters){ctx.globalAlpha=Math.min(1,f.life/.5);ctx.fillStyle=f.color;ctx.shadowColor=f.color;ctx.shadowBlur=10;ctx.fillText(f.text,f.x,f.y);}
   ctx.shadowBlur=0;ctx.globalAlpha=1;
-  if(mode==="playing"){ctx.fillStyle="rgba(203,213,225,.5)";ctx.font="800 11px 'Segoe UI'";ctx.fillText((remaining+enemies.length)+" LEFT",W/2,30);}
+  if(mode==="playing"){ctx.fillStyle="rgba(203,213,225,.5)";ctx.font="800 11px 'Segoe UI'";ctx.fillText((remaining+enemies.length)+" LEFT",W/2,40);}
 
   ctx.restore();
 }
