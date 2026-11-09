@@ -76,7 +76,6 @@
   }
   #choices button:active { transform: translateY(2px); box-shadow: 0 2px 0 #166534; }
 
-  /* FLOATING CONTROLS - Lifted up by 50px */
   #dash {
     position: absolute; bottom: 50px; right: 24px;
     width: 76px; height: 76px; border-radius: 50%;
@@ -141,7 +140,7 @@ const ctx = canvas.getContext("2d");
 
 const W = 400;
 const H = 700;
-let RANGE = 150; // Reduced from 190
+let RANGE = 140; 
 const BULLET_SPEED = 520;
 const MAX_HP = 5;
 
@@ -202,9 +201,8 @@ function startWave() {
 }
 
 function reset() {
-  // Speed reduced from 230 to 180. Fire rate slowed slightly.
   player = { x: W/2, y: H/2, r: 12, hp: MAX_HP, speed: 180, dmg: 1, rate: .55, dirX: 0, dirY: -1, dashX: 0, dashY: -1, dashTime: 0, dashCd: 0, flash: 0 };
-  wave = 1; score = 0; elapsed = 0; particles = []; RANGE = 150; startWave();
+  wave = 1; score = 0; elapsed = 0; particles = []; RANGE = 140; startWave();
 }
 
 function upgrade() {
@@ -278,16 +276,41 @@ function spawn() {
 }
 
 function spawnEnemy(type, x, y) {
-  let hpBonus = Math.floor((wave-1)/3), hp, spd, r, col, tm;
+  // NEW HP SCALING SYSTEM: High, Low, Middle
+  let w = wave - 1;
+  let hp, spd, r, col, tm;
+  
   switch(type) {
-    case "charger": hp=3+hpBonus; spd=Math.min(140,65+wave*6); r=18; col="#fb7185"; tm=random(1.5,2.5); break;
-    case "spitter": hp=2+hpBonus; spd=Math.min(120,55+wave*5); r=15; col="#c084fc"; tm=1.5; break;
-    case "bomber": hp=3+hpBonus; spd=Math.min(110,52+wave*5); r=16; col="#3b82f6"; tm=random(1,2); break;
-    case "creeper": hp=3+hpBonus; spd=Math.min(100,48+wave*4); r=14; col="#eab308"; tm=0; break;
-    case "leaper": hp=4+hpBonus; spd=Math.min(130,58+wave*5); r=15; col="#f97316"; tm=random(.8,1.8); break;
-    case "glutton": hp=4+hpBonus; spd=Math.min(100,45+wave*4); r=17; col="#4ade80"; tm=random(2,4); break;
-    default: hp=2+hpBonus; spd=Math.min(150,60+wave*7); r=15; col="#86efac"; tm=random(1.5,2.5);
+    case "charger": 
+      hp = Math.round(8 * Math.pow(1.25, w)); // HIGH HP TANK
+      spd = Math.min(140, 65 + wave * 6); 
+      r = 18; col = "#fb7185"; tm = random(1.5, 2.5); break;
+    case "spitter": 
+      hp = Math.round(2 * Math.pow(1.2, w)); // LOW HP
+      spd = Math.min(120, 55 + wave * 5); 
+      r = 15; col = "#c084fc"; tm = 1.5; break;
+    case "bomber": 
+      hp = Math.round(5 * Math.pow(1.2, w)); // MEDIUM
+      spd = Math.min(110, 52 + wave * 5); 
+      r = 16; col = "#3b82f6"; tm = random(1, 2); break;
+    case "creeper": 
+      hp = Math.round(3 * Math.pow(1.25, w)); // LOW-MED
+      spd = Math.min(100, 48 + wave * 4); 
+      r = 14; col = "#eab308"; tm = 0; break;
+    case "leaper": 
+      hp = Math.round(6 * Math.pow(1.2, w)); // MEDIUM-HIGH
+      spd = Math.min(130, 58 + wave * 5); 
+      r = 15; col = "#f97316"; tm = random(.8, 1.8); break;
+    case "glutton": 
+      hp = Math.round(10 * Math.pow(1.25, w)); // HIGHEST HP (TANK)
+      spd = Math.min(100, 45 + wave * 4); 
+      r = 17; col = "#4ade80"; tm = random(2, 4); break;
+    default: // walker
+      hp = Math.round(2 * Math.pow(1.18, w)); // LOW HP
+      spd = Math.min(150, 60 + wave * 7); 
+      r = 15; col = "#86efac"; tm = random(1.5, 2.5);
   }
+  
   enemies.push({ x, y, type, r, hp, maxHp:hp, speed:spd, timer:tm, phase:"chase", aimX:0, aimY:1, color:col, jumpCd:0, jumpX:0, jumpY:0, jumping:false, explodeT:0, exploded:false, alpha:1, eatCd:0, flash:0 });
 }
 
@@ -347,7 +370,7 @@ function updateEnemy(e, dt) {
       if(e.explodeT<=0&&!e.exploded) {
         e.exploded=true; addShake(8);
         if(Math.hypot(e.x-player.x,e.y-player.y)<85+player.r) hurt();
-        for(let o of enemies) { if(o===e||o.hp<=0)continue; if(Math.hypot(o.x-e.x,o.y-e.y)<85){o.hp-=2;burst(o.x,o.y,"#f97316",6);} }
+        for(let o of enemies) { if(o===e||o.hp<=0)continue; if(Math.hypot(o.x-e.x,o.y-e.y)<85){o.hp-=4;burst(o.x,o.y,"#f97316",6);} } // Explosion deals more damage now
         burst(e.x,e.y,"#3b82f6",40); burst(e.x,e.y,"#f97316",25); e.hp=0;
       }
     }
@@ -374,11 +397,11 @@ function updateEnemy(e, dt) {
       let tx=t.x-e.x, ty=t.y-e.y, td=Math.hypot(tx,ty)||1;
       e.x+=(tx/td)*e.speed*1.6*dt; e.y+=(ty/td)*e.speed*1.6*dt;
       if(min<e.r+t.r+4&&e.eatCd<=0) {
-        t.hp=0; e.hp=Math.min(e.maxHp+2,e.hp+2); e.r=Math.min(24,e.r+2); e.eatCd=1.0;
+        t.hp=0; e.hp=Math.min(e.maxHp+3,e.hp+3); e.r=Math.min(24,e.r+2); e.eatCd=1.0;
         burst(t.x,t.y,"#4ade80",25);
         for(let i=0;i<2;i++) {
           let a=(Math.PI*2/2)*i+random(0,Math.PI*2), cx=e.x+Math.cos(a)*22, cy=e.y+Math.sin(a)*22;
-          let baseHp=Math.max(2,Math.round(e.maxHp*.8)); // Slightly tougher children
+          let baseHp=Math.max(4,Math.round(e.maxHp*.6)); 
           enemies.push({ x:cx, y:cy, type:"glutton", r:Math.max(11,Math.round(e.r*.75)), hp:baseHp, maxHp:baseHp, speed:e.speed*1.1, timer:random(1,2), phase:"chase", aimX:0, aimY:1, color:"#4ade80", jumpCd:0, jumpX:0, jumpY:0, jumping:false, explodeT:0, exploded:false, alpha:1, eatCd:1.2, flash:0 });
         }
         e.hp=0; burst(e.x,e.y,"#22c55e",35);
