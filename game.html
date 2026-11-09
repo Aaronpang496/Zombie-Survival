@@ -18,15 +18,16 @@
     overflow: hidden;
   }
 
+  /* ADDED BORDER AND MARGIN SO IT NEVER TOUCHES THE SCREEN EDGE */
   #game-frame {
     position: relative;
-    width: 400px;
+    width: 390px;
     height: 700px;
     background: #0a0f14;
     overflow: hidden;
     box-shadow: 0 0 30px rgba(0,0,0,0.9);
-    border-radius: 16px;
-    border: 1px solid #1e293b;
+    border-radius: 12px;
+    border: 2px solid #1e293b;
   }
 
   #hud {
@@ -52,7 +53,8 @@
   #score-block .hud-value { color: #38bdf8; }
 
   #arena { position: absolute; inset: 0; }
-  #game { display: block; width: 400px; height: 700px; touch-action: none; }
+  /* MATCHING THE NEW FRAME SIZE */
+  #game { display: block; width: 390px; height: 700px; touch-action: none; }
 
   #panel {
     position: absolute; inset: 0; z-index: 30;
@@ -76,7 +78,7 @@
   }
   #choices button:active { transform: translateY(2px); box-shadow: 0 2px 0 #166534; }
 
-  /* LIFTED CONTROLS: bottom: 100px keeps them away from the browser bar */
+  /* CONTROLS */
   #dash {
     position: absolute; bottom: 100px; right: 24px;
     width: 76px; height: 76px; border-radius: 50%;
@@ -139,9 +141,9 @@ const $ = id => document.getElementById(id);
 const canvas = $("game");
 const ctx = canvas.getContext("2d");
 
-const W = 400;
+const W = 390;
 const H = 700;
-const PAD = 20; // Thickness of the wall barrier
+const PAD = 24; // Thick wall barrier size
 let RANGE = 140; 
 const BULLET_SPEED = 520;
 const MAX_HP = 5;
@@ -271,8 +273,13 @@ function spawn() {
     else if (wave>=2) { if(r<.16) type="spitter"; else if(r<.32) type="charger"; }
     else { if(r<.18) type="spitter"; }
   }
+  // Spawn just outside the walls so they walk in
   let edge = Math.floor(random(0,4)), x, y;
-  if(edge===0){x=-25;y=random(20,H-20);} else if(edge===1){x=W+25;y=random(20,H-20);} else if(edge===2){x=random(20,W-20);y=-25;} else {x=random(20,W-20);y=H+25;}
+  if(edge===0){x=PAD-20;y=random(PAD+30,H-PAD-30);} 
+  else if(edge===1){x=W-PAD+20;y=random(PAD+30,H-PAD-30);} 
+  else if(edge===2){x=random(PAD+30,W-PAD-30);y=PAD-20;} 
+  else {x=random(PAD+30,W-PAD-30);y=H-PAD+20;}
+  
   spawnEnemy(type, x, y);
   spawned++; remaining--;
 }
@@ -397,7 +404,7 @@ function updateEnemy(e, dt) {
     } else { e.x+=nx*e.speed*.8*dt; e.y+=ny*e.speed*.8*dt; }
   }
 
-  // STRICT EDGE COLLISION: All enemies are now locked inside the PAD boundary
+  // STRICT COLLISION: Cannot pass the yellow wall
   e.x = clamp(e.x, PAD + e.r, W - PAD - e.r);
   e.y = clamp(e.y, PAD + e.r, H - PAD - e.r);
 }
@@ -427,7 +434,8 @@ function update(dt) {
     player.x+=dir.x*st; player.y+=dir.y*st;
     if(dir.x||dir.y){player.dirX=dir.x;player.dirY=dir.y;}
   }
-  // STRICT EDGE COLLISION: Player is locked inside the PAD boundary
+  
+  // STRICT COLLISION: Player cannot pass the yellow wall
   player.x=clamp(player.x, PAD + player.r, W - PAD - player.r);
   player.y=clamp(player.y, PAD + player.r, H - PAD - player.r);
 
@@ -476,16 +484,14 @@ function draw() {
   
   ctx.fillStyle = "#0a0e13"; ctx.fillRect(0,0,W,H);
   
-  // Draw Hazard Walls
-  let border = PAD;
-  ctx.strokeStyle = "rgba(251,191,36,.3)"; // Brighter yellow to show the wall
+  // DRAW STRICT YELLOW BOUNDARIES
+  ctx.strokeStyle = "rgba(251,191,36,.4)"; 
   ctx.lineWidth = 4; 
-  ctx.strokeRect(border/2, border/2, W-border, H-border);
+  ctx.strokeRect(PAD, PAD, W-PAD*2, H-PAD*2);
   
-  // Vignette inside the walls
-  let vg=ctx.createRadialGradient(W/2,H/2,H*.2,W/2,H/2,H*.7); vg.addColorStop(0,"rgba(0,0,0,0)"); vg.addColorStop(1,"rgba(0,0,0,.8)"); 
-  ctx.fillStyle=vg; 
-  ctx.fillRect(border, border, W-border*2, H-border*2);
+  // Inner dark area
+  ctx.fillStyle = "rgba(0,0,0,0.2)"; 
+  ctx.fillRect(PAD, PAD, W-PAD*2, H-PAD*2);
 
   if (!player) { ctx.restore(); return; }
 
